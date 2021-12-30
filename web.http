@@ -1,0 +1,77 @@
+###
+# "REST Client" Extension 설치하세요.
+# 원하는 라인에 커서 위치 후 Send Request ( Ctrl + Alt + R ).
+###
+
+###
+# 테스트용
+###
+
+###
+GET http://www.google.co.kr
+
+###
+# 패치서버
+###
+
+###
+GET http://kr.patch.battle.net:1119/
+
+###
+GET http://kr.patch.battle.net:1119/wow/cdns
+
+###
+GET http://kr.patch.battle.net:1119/wow/versions
+
+
+
+
+
+
+### Build Configuration
+GET http://level3.blizzard.com/tpr/wow/config/d5/46/d546a9eb7ada55776c68f1877ccd1e79
+
+### CDN Configuration
+GET http://level3.blizzard.com/tpr/wow/config/45/f7/45f721587ad00985a3ecc8e917d8392f
+
+### Product Configuration
+GET http://level3.blizzard.com/tpr/configs/data/31/8f/318f0300bf837efce38b1a9e09db1c2e
+
+### Patch Configuration
+GET http://level3.blizzard.com/tpr/wow/patch/e6/69/e669b23ace65f1908df0a45e7a17fcfa
+
+###
+# [Versions]
+# Region|BuildConfig|CDNConfig|KeyRing|BuildId|VersionName|ProductConfig
+###
+
+###
+GET http://kr.patch.battle.net:1119/wow/versions
+
+###
+GET http://kr.patch.battle.net:1119/w3/versions
+
+###
+GET http://kr.patch.battle.net:1119/d3/versions
+
+
+###
+# [CDNS]
+# Name|Path|Hosts|Servers|ConfigPath
+###
+
+###
+GET http://kr.patch.battle.net:1119/wow/cdns
+
+###
+GET http://kr.patch.battle.net:1119/w3/cdns
+
+###
+GET http://kr.patch.battle.net:1119/d3/cdns
+
+
+
+
+
+###
+GET https://assets.8i.com/CHICAGOTEST20200629_S01_T04_20210823_131433/manifest.mpd
