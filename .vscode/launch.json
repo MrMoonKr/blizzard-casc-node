@@ -11,7 +11,10 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "type": "pwa-node"
+            "type": "pwa-node",
+            "args": [
+                "--max_old_space_size=8291",
+            ]
         },
         {
             "type": "pwa-node",

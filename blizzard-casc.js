@@ -192,11 +192,14 @@ class CASC  {
      */
     async downloadDataFile( key ) 
     {
-        let dataURL = this._formatDataURL( key ) ;
+        let dataURL     = this._formatDataURL( key ) ;
         console.log( "[정보][데이터파일] " + dataURL ) ;
-        return new Bufo(
-            await request( this._formatDataURL( key ), { encoding: null } )
-        );
+
+        let dataFile    = await request( dataURL, { encoding:null } );
+        let buf         = new Bufo( dataFile ) ;
+
+        return buf ;
+        //return new Bufo( await request( this._formatDataURL( key ), { encoding: null } ) );
     }
 
     /**
@@ -263,9 +266,9 @@ class CASC  {
         // Download encoding file if provided with a key.
         if ( typeof encoding === "string" )
         {
-            encoding = new BLTEReader( await this.downloadDataFile( encoding ),
-                encoding
-            );
+            let dataFile = await this.downloadDataFile( encoding ) ;
+            //encoding = new BLTEReader( await this.downloadDataFile( encoding ), encoding );
+            encoding = new BLTEReader( dataFile, encoding );
         }
 
         encoding.seek(9);
