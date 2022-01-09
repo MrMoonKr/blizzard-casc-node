@@ -5,6 +5,21 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "[디버깅]현재파일",
+            "type": "pwa-node",
+            "request": "launch",
+            "program": "${file}",
+            "cwd": "${fileDirname}",
+            "args": [
+                "arg1", "value1",
+                "arg2", "value2"
+            ],
+            "skipFiles": [
+                "<node_internals>/**",
+                "node_modules/**"
+            ]
+        },
+        {
             "name": "Launch Test",
             "program": "${workspaceFolder}/test.js",
             "request": "launch",
