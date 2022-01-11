@@ -6,7 +6,7 @@ const installPath       = 'H:/myGames/World of Warcraft';
 
 const openInstall = async ( intallPaht ) => {
 
-    const casc              = new CASCLocal( installPath );
+    const casc          = new CASCLocal( installPath );
     await casc.init();
 }
 

@@ -46,23 +46,30 @@ class VersionConfig
 
         this.records = records ;
     }
-
-
 }
 
+
+/**
+ * 클래스 설명.
+ * 클래스 세부설명.
+ */
 class CASCLocal
 {
 
+    /**
+     * 생성자 세부 설명
+     * @param {string} installPath 
+     */
     constructor( installPath )
     {
-        this.installPath = installPath ;
+        this.installPath    = installPath ;
     }
 
     async init()
     {
-        const buildInfo = path.join( this.installPath, '.build.info' );
-        const buildData = await fsp.readFile( buildInfo, 'utf8' );
-        const config    = new VersionConfig( buildData );
+        const buildInfo     = path.join( this.installPath, '.build.info' );
+        const buildData     = await fsp.readFile( buildInfo, 'utf8' );
+        const config        = new VersionConfig( buildData );
     }
 }
 
