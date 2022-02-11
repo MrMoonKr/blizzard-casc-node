@@ -75,3 +75,12 @@ GET http://kr.patch.battle.net:1119/d3/cdns
 
 ###
 GET https://assets.8i.com/CHICAGOTEST20200629_S01_T04_20210823_131433/manifest.mpd
+
+###
+GET https://d1lf3486063qdz.cloudfront.net/class-videos/mr-youtube-tone-wop-open-and-close/mr-youtube-tone-wop-open-and-close-1080p-7500kbps.m3u8
+
+###
+GET https://d1lf3486063qdz.cloudfront.net/class-videos/mr-youtube-tone-wop-open-and-close/mr-youtube-tone-wop-open-and-close-1080p-7500kbps_00001.ts
+
+###
+GET https://d1lf3486063qdz.cloudfront.net/class-videos/mr-youtube-tone-wop-open-and-close/mr-youtube-tone-wop-open-and-close-720p-5000kbps_00001.ts

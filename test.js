@@ -5,7 +5,7 @@ const casc      = new CASC();
 /**
  * test function
  */
-var mainTest    = async () => {
+var bootTest    = async () => {
 
     // Testing Product
 
@@ -36,6 +36,7 @@ var mainTest    = async () => {
     let expectedProps = ["Name", "Path", "Hosts", "ConfigPath"];
     
     // cdns
+    /** @type CDNS[] */
     let cdnList = await casc.downloadCDNList();
     assert( Array.isArray( cdnList ),
         "Array expected from casc.downloadCDNList()"
@@ -52,6 +53,7 @@ var mainTest    = async () => {
     }
 
     // Test and validate version list structure.
+    /** @type Versions[] */
     let versionList = await casc.downloadVersionList();
     expectedProps = [
         "Region",
@@ -92,6 +94,7 @@ var mainTest    = async () => {
     assert( casc.cdnServer.startsWith( "http://" ) );
 
     // Find the build for the CDN region we picked.
+    /** type Versions */
     let selectedVersion;
     for ( let version of versionList ) {
         if ( version.Region === selectedCdn.Name ) {
@@ -126,4 +129,4 @@ var mainTest    = async () => {
 /**
  * main entry point
  */
-mainTest();
+bootTest();

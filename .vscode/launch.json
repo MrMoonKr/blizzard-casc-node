@@ -11,8 +11,7 @@
             "program": "${file}",
             "cwd": "${fileDirname}",
             "args": [
-                "arg1", "value1",
-                "arg2", "value2"
+                "--max_old_space_size=8192",
             ],
             "skipFiles": [
                 "<node_internals>/**",

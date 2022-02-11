@@ -141,6 +141,7 @@ class CASC  {
 
     /**
      * Download the CDN list from the patch server.
+     * http://kr.patch.battle.net:1119/wow/cdns 다운로드
      * @returns {Promise.<Array>} Name|Path|Hosts|Servers|ConfigPath
      */
     async downloadCDNList() {
@@ -478,10 +479,10 @@ class CASC  {
     static _processVersionConfig( data ) 
     {
         let entries = [];
-        let fields = [];
+        let fields  = [];
 
-        let index = 0;
-        let lines = data.split( /\n/ );
+        let index   = 0;
+        let lines   = data.split( /\n/ );
         for ( let line of lines ) 
         {
             if ( line.trim().length === 0 || line.startsWith("#") ) continue; // Empty lines/comments.
@@ -490,7 +491,8 @@ class CASC  {
 
             if ( index === 0 ) // column fields
             {
-                for ( let i = 0 ; i < tokens.length ; i++ ) {
+                for ( let i = 0 ; i < tokens.length ; i++ ) 
+                {
                     fields[i] = tokens[i].split("!")[0].replace(" ", "");
                 }
             } 
