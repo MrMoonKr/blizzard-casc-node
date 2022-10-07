@@ -121,25 +121,22 @@ class CASCRemote extends CASC {
 
     /**
      * Download and parse a CDN config file.
-     * @param {string} key
+     * @param {String} key
      */
     async getCDNConfig( key ) 
     {
-        const url = this.host + "config/" + this.formatCDNKey(key);
-        const res = await generics.get(url);
+        const url = this.host + "config/" + this.formatCDNKey( key );
+        const res = await generics.get( url );
 
-        if (res.statusCode !== 200)
+        if ( res.statusCode !== 200 )
         {
-            throw new Error(
-                util.format(
-                    "Unable to retrieve CDN config file %s (HTTP %d)",
-                    key,
-                    res.statusCode
+            throw new Error( util.format( "Unable to retrieve CDN config file %s (HTTP %d)",
+                    key, res.statusCode
                 )
             );
         }
 
-        return CDNConfig(await generics.consumeUTF8Stream(res));
+        return CDNConfig( await generics.consumeUTF8Stream( res ) );
     }
 
     /**
@@ -244,7 +241,10 @@ class CASCRemote extends CASC {
      */
     async preload( buildIndex, cache = null ) 
     {
-        this.build = this.builds[buildIndex];
+        /**
+         * @type {Versions}
+         */
+        this.build = this.builds[ buildIndex ];
         log.write("Preloading remote CASC build: %o", this.build);
 
         if ( cache ) 
@@ -286,7 +286,8 @@ class CASCRemote extends CASC {
     /**
      * Download and parse the encoding file.
      */
-    async loadEncoding() {
+    async loadEncoding() 
+    {
         const encKeys = this.buildConfig.encoding.split(" ");
         const encKey = encKeys[1];
 
@@ -326,7 +327,8 @@ class CASCRemote extends CASC {
     /**
      * Download and parse the root file.
      */
-    async loadRoot() {
+    async loadRoot() 
+    {
         // Get root key from encoding table.
         const rootKey = this.encodingKeys.get(this.buildConfig.root);
         if (rootKey === undefined)
@@ -502,16 +504,23 @@ class CASCRemote extends CASC {
     /**
      * Download the CDNConfig and BuildConfig.
      */
-    async loadConfigs() {
+    async loadConfigs() 
+    {
         // Download CDNConfig and BuildConfig.
-        if (this.progress)
-            await this.progress.step("Fetching build configurations");
+        // if (this.progress)
+        //     await this.progress.step("Fetching build configurations");
 
-        this.cdnConfig = await this.getCDNConfig(this.build.CDNConfig);
-        this.buildConfig = await this.getCDNConfig(this.build.BuildConfig);
+        /**
+         * @type {CDNConfig}
+         */
+        this.cdnConfig   = await this.getCDNConfig( this.build.CDNConfig );
+        /**
+         * @type {BuildConfig}
+         */
+        this.buildConfig = await this.getCDNConfig( this.build.BuildConfig );
 
-        log.write("CDNConfig: %o", this.cdnConfig);
-        log.write("BuildConfig: %o", this.buildConfig);
+        log.write( "CDNConfig: %o", this.cdnConfig );
+        log.write( "BuildConfig: %o", this.buildConfig );
     }
 
     /**
@@ -527,7 +536,7 @@ class CASCRemote extends CASC {
 
         let bestHost = null;
         const hosts = this.serverConfig.Hosts.split(" ").map(
-            (e) => "http://" + e + "/"
+            ( e ) => "http://" + e + "/"
         );
         const hostPings = [];
 
@@ -536,61 +545,60 @@ class CASCRemote extends CASC {
             hostPings.push(
                 generics
                     .ping( host )
-                    .then((ping) => {
-                        log.write(
-                            "Host %s resolved with %dms ping",
-                            host,
-                            ping
-                        );
-                        if (bestHost === null || ping < bestHost.ping)
+                    .then( ( ping ) => {
+                        log.write( "Host %s resolved with %dms ping",
+                            host, ping );
+                        if ( bestHost === null || ping < bestHost.ping )
+                        {
                             bestHost = { host, ping };
-                    })
-                    .catch((e) => {
-                        log.write(
-                            "Host %s failed to resolve a ping: %s",
-                            host,
-                            e
+                        }
+                    } )
+                    .catch( ( e ) => {
+                        log.write( "Host %s failed to resolve a ping: %s",
+                            host, e
                         );
-                    })
+                    } )
             );
         }
 
         // Ensure that every ping has resolved or failed.
-        await Promise.allSettled(hostPings);
+        await Promise.allSettled( hostPings );
 
         // No hosts resolved.
-        if (bestHost === null) throw new Error("Unable to resolve a CDN host.");
+        if ( bestHost === null ) throw new Error("Unable to resolve a CDN host.");
 
-        log.write(
-            "%s resolved as the fastest host with a ping of %dms",
-            bestHost.host,
-            bestHost.ping
+        log.write( "%s resolved as the fastest host with a ping of %dms",
+            bestHost.host, bestHost.ping
         );
+
         this.host = bestHost.host + this.serverConfig.Path + "/";
     }
 
     /**
      * Format a CDN key for use in CDN requests.
      * 49299eae4e3a195953764bb4adb3c91f -> 49/29/49299eae4e3a195953764bb4adb3c91f
-     * @param {string} key
+     * @param {String} key
      */
-    formatCDNKey(key) {
-        return key.substring(0, 2) + "/" + key.substring(2, 4) + "/" + key;
+    formatCDNKey( key ) 
+    {
+        return key.substring( 0, 2 ) + "/" + key.substring( 2, 4 ) + "/" + key ;
     }
 
     /**
      * Get the current build ID.
-     * @returns {string}
+     * @returns {String}
      */
-    getBuildName() {
+    getBuildName() 
+    {
         return this.build.VersionsName;
     }
 
     /**
      * Returns the build configuration key.
-     * @returns {string}
+     * @returns {String}
      */
-    getBuildKey() {
+    getBuildKey() 
+    {
         return this.build.BuildConfig;
     }
 }

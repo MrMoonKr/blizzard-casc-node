@@ -29,13 +29,13 @@ GET http://kr.patch.battle.net:1119/wow/versions
 
 
 ### Build Configuration
-GET http://level3.blizzard.com/tpr/wow/config/d5/46/d546a9eb7ada55776c68f1877ccd1e79
+GET http://level3.blizzard.com/tpr/wow/config/43/b2/43b2762b8e4a57c4771a5cf9a1d99661
 
 ### CDN Configuration
-GET http://level3.blizzard.com/tpr/wow/config/45/f7/45f721587ad00985a3ecc8e917d8392f
+GET http://level3.blizzard.com/tpr/wow/config/74/33/7433523cfc0f2145173050ef78cc79b8
 
 ### Product Configuration
-GET http://level3.blizzard.com/tpr/configs/data/31/8f/318f0300bf837efce38b1a9e09db1c2e
+GET http://level3.blizzard.com/tpr/configs/data/6d/4d/6d4dabb07d5dc9ca361cdb93b759c6de
 
 ### Patch Configuration
 GET http://level3.blizzard.com/tpr/wow/patch/e6/69/e669b23ace65f1908df0a45e7a17fcfa

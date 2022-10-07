@@ -90,7 +90,7 @@ const ping = async ( url ) =>
     const pingStart = Date.now();
     await get(url);
     //return Date.now() - pingStart;
-    const pingEnd = Data.now();
+    const pingEnd = Date.now();
     const pingTime = pingEnd - pingStart ;
     return pingTime ;
 };

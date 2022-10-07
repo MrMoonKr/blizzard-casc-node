@@ -11,32 +11,65 @@
 /**
  * [urlroot]/wow/cdns 표현 객체
  * @typedef {Object} CDNS
- * @property {String} Name region
- * @property {String} Path
+ * @property {String} Name "en", "kr", ... : region
+ * @property {String} Path "tpr/wow"
  * @property {String} Hosts
  * @property {String} Servers
- * @property {String} ConfigPath
+ * @property {String} ConfigPath "tpr/configs/data"
  */
 
 
 /**
  * 
  * @typedef {Object} Versions
- * @property {String} Region
- * @property {String} BuildConfig
- * @property {String} CDNConfig
- * @property {String} KeyRing
- * @property {String} BuildId
- * @property {String} VersionName
- * @property {String} ProductConfig
+ * @property {String} Region region
+ * @property {String} BuildConfig build file hex key
+ * @property {String} CDNConfig cdn file hex key
+ * @property {String} KeyRing null
+ * @property {String} BuildId x
+ * @property {String} VersionsName x.x.x.x
+ * @property {String} ProductConfig product file hex key
  * 
  * @property {String} Product
  */
 
 
+/**
+ * @typedef {Object} BuildConfig
+ * @property {String} root
+ * @property {String} install
+ * @property {String} installSize
+ * @property {String} download
+ * @property {String} downloadSize
+ * @property {String} size
+ * @property {String} sizeSize
+ * @property {String} encoding
+ * @property {String} encodingSize
+ * @property {String} patchIndex
+ * @property {String} patchIndexSize
+ * @property {String} patch
+ * @property {String} patchSize
+ * @property {String} patchConfig
+ * @property {String} buildName
+ * @property {String} buildUid
+ * @property {String} buildProduct
+ * @property {String} buildPlaybuildInstaller
+ * @property {String} buildPartialPriority
+ */
 
-
-
+/**
+ * @typedef {Object} CDNConfig
+ * @property {String} archives
+ * @property {String} archivesIndexSize
+ * @property {String} archiveGroup
+ * @property {String} patchArchives
+ * @property {String} patchArchivesIndexSize
+ * @property {String} patchArchiveGroup
+ * @property {String} fileIndex
+ * @property {String} fileIndexSize
+ * @property {String} patchFileIndex
+ * @property {String} patchFileIndexSize
+ */
 
 /**
  * MongoDB 접속 URI 파싱 결과 저장 객체.  

@@ -3,14 +3,14 @@
 	Authors: Kruithne <kruithne@gmail.com>
 	License: MIT
  */
-const path = require('path');
-const fs = require('fs');
+const path = require("path");
+const fs = require("fs");
 const fsp = fs.promises;
-const log = require('./log');
-const constants = require('./constants');
-const generics = require('./generics');
+const log = require("./log");
+const constants = require("./constants");
+const generics = require("./generics");
 //const core = require('../core');
-const BufferWrapper = require('./buffer');
+const BufferWrapper = require("./buffer");
 
 let cacheIntegrity;
 
@@ -18,137 +18,156 @@ let cacheIntegrity;
  * Returns a promise that resolves once cache integrity is available.
  */
 const cacheIntegrityReady = async () => {
-	return new Promise(res => {
-		// Cache integrity already available.
-		if (cacheIntegrity)
-			return res();
+    return new Promise( ( res ) => {
+        // Cache integrity already available.
+        if (cacheIntegrity) return res();
 
-		// Wait for initialization event to fire.
-		log.write('Cache integrity is not ready, waiting!');
-		//core.events.once('cache-integrity-ready', res);
-	});
+        // Wait for initialization event to fire.
+        log.write("Cache integrity is not ready, waiting!");
+        //core.events.once('cache-integrity-ready', res);
+    });
 };
 
 class BuildCache {
-	/**
-	 * Construct a new BuildCache instance.
-	 * @param {string} key 
-	 */
-	constructor(key) {
-		this.key = key;
-		this.meta = {};
+    /**
+     * Construct a new BuildCache instance.
+     * @param {string} key
+     */
+    constructor(key) {
+        this.key = key;
+        this.meta = {};
 
-		this.cacheDir = path.join(constants.CACHE.DIR_BUILDS, key);
-		this.manifestPath = path.join(this.cacheDir, constants.CACHE.BUILD_MANIFEST);
-	}
-	
-	/**
-	 * Initialize the build cache instance.
-	 */
-	async init() {
-		// Create cache directory if needed.
-		await fsp.mkdir(this.cacheDir, { recursive: true });
+        this.cacheDir = path.join(constants.CACHE.DIR_BUILDS, key);
+        this.manifestPath = path.join(
+            this.cacheDir,
+            constants.CACHE.BUILD_MANIFEST
+        );
+    }
 
-		// Load manifest values.
-		try {
-			const manifest = JSON.parse(await fsp.readFile(this.manifestPath, 'utf8'));
-			Object.assign(this.meta, manifest);
-		} catch (e) {
-			log.write('No cache manifest found for %s', this.key);
-		}
+    /**
+     * Initialize the build cache instance.
+     */
+    async init() {
+        // Create cache directory if needed.
+        await fsp.mkdir(this.cacheDir, { recursive: true });
 
-		// Save access update without blocking.
-		this.meta.lastAccess = Date.now();
-		this.saveManifest();
-	}
+        // Load manifest values.
+        try {
+            const manifest = JSON.parse(
+                await fsp.readFile(this.manifestPath, "utf8")
+            );
+            Object.assign(this.meta, manifest);
+        } catch (e) {
+            log.write("No cache manifest found for %s", this.key);
+        }
 
-	/**
-	 * Attempt to get a file from this build cache.
-	 * Returns NULL if the file is not cached.
-	 * @param {string} file File path relative to build cache.
-	 * @param {string} dir Optional override directory.
-	 */
-	async getFile(file, dir) {
-		try {
-			const filePath = this.getFilePath(file, dir);
+        // Save access update without blocking.
+        this.meta.lastAccess = Date.now();
+        this.saveManifest();
+    }
 
-			// Cache integrity is not loaded yet, wait for it.
-			if (!cacheIntegrity)
-				await cacheIntegrityReady();
+    /**
+     * Attempt to get a file from this build cache.
+     * Returns NULL if the file is not cached.
+     * @param {string} file File path relative to build cache.
+     * @param {string} dir Optional override directory.
+     */
+    async getFile(file, dir) {
+        try {
+            const filePath = this.getFilePath(file, dir);
 
-			const integrityHash = cacheIntegrity[filePath];
+            // Cache integrity is not loaded yet, wait for it.
+            if (!cacheIntegrity) await cacheIntegrityReady();
 
-			// File integrity cannot be verified, reject.
-			if (typeof integrityHash !== 'string') {
-				log.write('Cannot verify integrity of file, rejecting cache (%s)', filePath);
-				return null;
-			}
+            const integrityHash = cacheIntegrity[filePath];
 
-			const data = await BufferWrapper.readFile(filePath);
-			const dataHash = data.calculateHash('sha1', 'hex');
+            // File integrity cannot be verified, reject.
+            if (typeof integrityHash !== "string") {
+                log.write(
+                    "Cannot verify integrity of file, rejecting cache (%s)",
+                    filePath
+                );
+                return null;
+            }
 
-			// Reject cache if hash does not match.
-			if (dataHash !== integrityHash) {
-				log.write('Bad integrity for file %s, rejecting cache (%s != %s)', filePath, dataHash, integrityHash);
-				return null;
-			}
+            const data = await BufferWrapper.readFile(filePath);
+            const dataHash = data.calculateHash("sha1", "hex");
 
-			return data;
-		} catch (e) {
-			return null;
-		}
-	}
+            // Reject cache if hash does not match.
+            if (dataHash !== integrityHash) {
+                log.write(
+                    "Bad integrity for file %s, rejecting cache (%s != %s)",
+                    filePath,
+                    dataHash,
+                    integrityHash
+                );
+                return null;
+            }
 
-	/**
-	 * Get a direct path to a cached file.
-	 * @param {string} file File path relative to build cache.
-	 * @param {string} dir Optional override directory.
-	 */
-	getFilePath(file, dir) {
-		return path.join(dir || this.cacheDir, file);
-	}
+            return data;
+        } catch (e) {
+            return null;
+        }
+    }
 
-	/**
-	 * Store a file in this build cache.
-	 * @param {string} file File path relative to build cache.
-	 * @param {BufferWrapper} data Data to store in the file.
-	 * @param {string} dir Optional override directory.
-	 */
-	async storeFile(file, data, dir) {
-		if (!(data instanceof BufferWrapper))
-			throw new Error('Data provided to cache.storeFile() must be of BufferWrapper type.');
+    /**
+     * Get a direct path to a cached file.
+     * @param {string} file File path relative to build cache.
+     * @param {string} dir Optional override directory.
+     */
+    getFilePath(file, dir) {
+        return path.join(dir || this.cacheDir, file);
+    }
 
-		const filePath = this.getFilePath(file, dir);
-		if (dir)
-			await generics.createDirectory(path.dirname(filePath));
+    /**
+     * Store a file in this build cache.
+     * @param {string} file File path relative to build cache.
+     * @param {BufferWrapper} data Data to store in the file.
+     * @param {string} dir Optional override directory.
+     */
+    async storeFile(file, data, dir) {
+        if (!(data instanceof BufferWrapper))
+            throw new Error(
+                "Data provided to cache.storeFile() must be of BufferWrapper type."
+            );
 
-		// Cache integrity is not loaded yet, wait for it.
-		if (!cacheIntegrity)
-			await cacheIntegrityReady();
+        const filePath = this.getFilePath(file, dir);
+        if (dir) await generics.createDirectory(path.dirname(filePath));
 
-		// Integrity checking.
-		const hash = data.calculateHash('sha1', 'hex');
-		cacheIntegrity[filePath] = hash;
+        // Cache integrity is not loaded yet, wait for it.
+        if (!cacheIntegrity) await cacheIntegrityReady();
 
-		await fsp.writeFile(filePath, data.raw);
-		core.view.cacheSize += data.byteLength;
+        // Integrity checking.
+        const hash = data.calculateHash("sha1", "hex");
+        cacheIntegrity[filePath] = hash;
 
-		await this.saveCacheIntegrity();
-	}
+        await fsp.writeFile(filePath, data.raw);
+        core.view.cacheSize += data.byteLength;
 
-	/**
-	 * Save the cache integrity to disk.
-	 */
-	async saveCacheIntegrity() {
-		await fsp.writeFile(constants.CACHE.INTEGRITY_FILE, JSON.stringify(cacheIntegrity), 'utf8');
-	}
+        await this.saveCacheIntegrity();
+    }
 
-	/**
-	 * Save the manifest for this build cache.
-	 */
-	async saveManifest() {
-		await fsp.writeFile(this.manifestPath, JSON.stringify(this.meta), 'utf8');
-	}
+    /**
+     * Save the cache integrity to disk.
+     */
+    async saveCacheIntegrity() {
+        await fsp.writeFile(
+            constants.CACHE.INTEGRITY_FILE,
+            JSON.stringify(cacheIntegrity),
+            "utf8"
+        );
+    }
+
+    /**
+     * Save the manifest for this build cache.
+     */
+    async saveManifest() {
+        await fsp.writeFile(
+            this.manifestPath,
+            JSON.stringify(this.meta),
+            "utf8"
+        );
+    }
 }
 
 // Initialize cache integrity system.
