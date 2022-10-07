@@ -1,6 +1,14 @@
 
 
 /**
+ * BLTE Block
+ * @typedef {Object} BLTEBlock
+ * @property {Number} CompSize
+ * @property {Number} DecompSize
+ * @property {Number} Hash
+ */
+
+/**
  * [urlroot]/wow/cdns 표현 객체
  * @typedef {Object} CDNS
  * @property {string} Name

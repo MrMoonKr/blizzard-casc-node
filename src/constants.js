@@ -142,4 +142,10 @@ module.exports = {
         { match: "\x01\x00\x00\x00BIDA", ext: ".bone" },
         { match: "SYHP\x02\x00\x00\x00", ext: ".phys" },
     ],
+
+    LISTFILE: {
+        "listfileURL": "https://www.kruithne.net/wow.export/data/listfile/master?v=%s",
+	    "listfileCacheRefresh": 3,
+	    "listfileSortByID": false,
+    }
 };

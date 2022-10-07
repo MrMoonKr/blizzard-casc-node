@@ -21,12 +21,15 @@ const EMPTY_HASH = "00000000000000000000000000000000";
 class CASCRemote extends CASC {
     /**
      * Create a new CASC source using a Blizzard CDN.
-     * @param {string} region Region tag (eu, us, etc).
+     * @param {String} region Region tag (eu, us, etc).
      */
     constructor(region) {
         super(true);
 
         this.archives = new Map();
+        /**
+         * @type {String} "eu", "us", "kr", "cn", "tw"
+         */
         this.region = region;
     }
 
@@ -35,21 +38,27 @@ class CASCRemote extends CASC {
      */
     async init() {
         log.write("Initializing remote CASC source (%s)", this.region);
-        this.host = util.format(constants.PATCH.HOST, this.region);
+        /**
+         * @type {String} http://%s.patch.battle.net:1119/
+         */
+        this.host = util.format(constants.PATCH.HOST, this.region); //http://%s.patch.battle.net:1119/
         this.builds = [];
 
         // Collect version configs for all products.
-        const promises = constants.PRODUCTS.map((p) =>
-            this.getVersionConfig(p.product)
+        const promises = constants.PRODUCTS.map( ( p ) =>
+            this.getVersionConfig( p.product )
         );
-        const results = await Promise.allSettled(promises);
+        const results = await Promise.allSettled( promises );
 
         // Iterate through successful requests and extract product config for our region.
-        for (const result of results) {
+        for (const result of results) 
+        {
             if (result.status === "fulfilled")
+            {  
                 this.builds.push(
-                    result.value.find((e) => e.Region === this.region)
+                    result.value.find( (e) => e.Region === this.region )
                 );
+            }
         }
 
         log.write("%o", this.builds);
@@ -94,11 +103,13 @@ class CASCRemote extends CASC {
      * Download and parse a CDN config file.
      * @param {string} key
      */
-    async getCDNConfig(key) {
+    async getCDNConfig( key ) 
+    {
         const url = this.host + "config/" + this.formatCDNKey(key);
         const res = await generics.get(url);
 
         if (res.statusCode !== 200)
+        {
             throw new Error(
                 util.format(
                     "Unable to retrieve CDN config file %s (HTTP %d)",
@@ -106,6 +117,7 @@ class CASCRemote extends CASC {
                     res.statusCode
                 )
             );
+        }
 
         return CDNConfig(await generics.consumeUTF8Stream(res));
     }
@@ -125,19 +137,21 @@ class CASCRemote extends CASC {
         suppressLog = false,
         supportFallback = true,
         forceFallback = false,
-        contentKey = null
-    ) {
-        if (!suppressLog)
+        contentKey = null ) 
+    {
+        if (!suppressLog) {
             log.write(
                 "Loading remote CASC file %d (%s)",
                 fileDataID,
                 listfile.getByID(fileDataID)
             );
+        }
 
-        const encodingKey =
+        const encodingKey = 
             contentKey !== null
-                ? super.getEncodingKeyForContentKey(contentKey)
-                : await super.getFile(fileDataID);
+                ? super.getEncodingKeyForContentKey( contentKey )
+                : await super.getFile( fileDataID );
+
         let data = await this.cache.getFile(
             encodingKey,
             constants.CACHE.DIR_DATA
@@ -174,12 +188,14 @@ class CASCRemote extends CASC {
                     );
             }
 
-            this.cache.storeFile(encodingKey, data, constants.CACHE.DIR_DATA);
-        } else if (!suppressLog) {
-            log.write("Loaded CASC file %d from cache", fileDataID);
+            this.cache.storeFile( encodingKey, data, constants.CACHE.DIR_DATA );
+        }
+        else if ( !suppressLog ) 
+        {
+            log.write( "Loaded CASC file %d from cache", fileDataID );
         }
 
-        return new BLTEReader(data, encodingKey, partialDecrypt);
+        return new BLTEReader( data, encodingKey, partialDecrypt );
     }
 
     /**
@@ -236,7 +252,7 @@ class CASCRemote extends CASC {
 
         core.view.casc = this;
 
-        await this.loadListfile(this.build.BuildConfig);
+        await this.loadListfile( this.build.BuildConfig );
         await this.loadTables();
         await this.filterListfile();
         await this.initializeComponents();
@@ -325,18 +341,19 @@ class CASCRemote extends CASC {
     /**
      * Download and parse archive files.
      */
-    async loadArchives() {
+    async loadArchives() 
+    {
         // Download archive indexes.
-        const archiveKeys = this.cdnConfig.archives.split(" ");
+        const archiveKeys  = this.cdnConfig.archives.split(" ");
         const archiveCount = archiveKeys.length;
 
-        log.timeLog();
+        //log.timeLog();
 
-        if (this.progress) await this.progress.step("Loading archives");
+        //if (this.progress) await this.progress.step("Loading archives");
 
         await generics.queue(
             archiveKeys,
-            async (key) => await this.parseArchiveIndex(key),
+            async ( key ) => await this.parseArchiveIndex( key ),
             50
         );
 
@@ -344,12 +361,16 @@ class CASCRemote extends CASC {
         let archiveTotalSize = this.cdnConfig.archivesIndexSize
             .split(" ")
             .reduce((x, e) => Number(x) + Number(e));
-        log.timeEnd(
-            "Loaded %d archives (%d entries, %s)",
-            archiveCount,
-            this.archives.size,
-            generics.filesize(archiveTotalSize)
-        );
+
+        log.write( "Loaded %d archives (%d entries, %s)",
+            archiveCount, this.archives.size, generics.filesize( archiveTotalSize ) );
+
+        // log.timeEnd(
+        //     "Loaded %d archives (%d entries, %s)",
+        //     archiveCount,
+        //     this.archives.size,
+        //     generics.filesize(archiveTotalSize)
+        // );
     }
 
     /**
@@ -380,17 +401,20 @@ class CASCRemote extends CASC {
      * Will use global cache and download if missing.
      * @param {string} key
      */
-    async parseArchiveIndex(key) {
+    async parseArchiveIndex( key ) 
+    {
         const fileName = key + ".index";
 
         let data = await this.cache.getFile(
             fileName,
             constants.CACHE.DIR_INDEXES
         );
-        if (data === null) {
-            const cdnKey = this.formatCDNKey(key) + ".index";
-            data = await this.getDataFile(cdnKey);
-            this.cache.storeFile(fileName, data, constants.CACHE.DIR_INDEXES);
+        if ( data === null ) 
+        {
+            const cdnKey = this.formatCDNKey( key ) + ".index";
+            data = await this.getDataFile( cdnKey );
+
+            this.cache.storeFile( fileName, data, constants.CACHE.DIR_INDEXES );
         }
 
         // Skip to the end of the archive to find the count.
@@ -404,13 +428,14 @@ class CASCRemote extends CASC {
 
         data.seek(0); // Reset position.
 
-        for (let i = 0; i < count; i++) {
+        for ( let i = 0 ; i < count ; i++ ) 
+        {
             let hash = data.readHexString(16);
 
             // Skip zero hashes.
-            if (hash === EMPTY_HASH) hash = data.readHexString(16);
+            if ( hash === EMPTY_HASH ) hash = data.readHexString( 16 );
 
-            this.archives.set(hash, {
+            this.archives.set( hash, {
                 key,
                 size: data.readInt32BE(),
                 offset: data.readInt32BE(),

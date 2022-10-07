@@ -3,351 +3,433 @@
 	Authors: Kruithne <kruithne@gmail.com>
 	License: MIT
  */
-const path = require('path');
-const fsp = require('fs').promises;
-const util = require('util');
-const log = require('./log');
-const constants = require('./constants');
-const CASC = require('./casc-source');
-const VersionConfig = require('./version-config');
-const CDNConfig = require('./cdn-config');
-const BufferWrapper = require('./buffer');
-const BuildCache = require('./build-cache');
-const BLTEReader = require('./blte-reader').BLTEReader;
-const listfile = require('./listfile');
+const path = require("path");
+const fsp = require("fs").promises;
+const util = require("util");
+const log = require("./log");
+const constants = require("./constants");
+const CASC = require("./casc-source");
+const VersionConfig = require("./version-config");
+const CDNConfig = require("./cdn-config");
+const BufferWrapper = require("./buffer");
+const BuildCache = require("./build-cache");
+const BLTEReader = require("./blte-reader").BLTEReader;
+const listfile = require("./listfile");
 //const core = require('../core');
-const generics = require('./generics');
-const CASCRemote = require('./casc-source-remote');
+const generics = require("./generics");
+const CASCRemote = require("./casc-source-remote");
 
+
+/**
+ * Local CASC installed
+ */
 class CASCLocal extends CASC {
-	/**
-	 * Create a new CASC source using a local installation.
-	 * @param {string} dir Installation path.
-	 */
-	constructor(dir) {
-		super(false);
+    
+    /**
+     * Create a new CASC source using a local installation.
+     * @param {String} installPath Installation path.
+     */
+    constructor( installPath ) 
+    {
 
-		this.dir = dir;
-		this.dataDir = path.join(dir, constants.BUILD.DATA_DIR);
-		this.storageDir = path.join(this.dataDir, 'data');
+        super( false );
 
-		this.localIndexes = new Map();
-	}
+        this.dir = installPath;
+        this.dataDir = path.join(installPath, constants.BUILD.DATA_DIR);
+        this.storageDir = path.join(this.dataDir, "data");
 
-	/**
-	 * Initialize local CASC source.
-	 */
-	async init() {
-		//log.write('Initializing local CASC installation: %s', this.dir);
+        this.localIndexes = new Map();
+    }
 
-		const buildInfo = path.join(this.dir, constants.BUILD.MANIFEST);
-        const data = await fsp.readFile( buildInfo, 'utf8');
-		//const config = VersionConfig(await fsp.readFile(buildInfo, 'utf8'));
-        const config = VersionConfig( data );
+    /**
+     * Initialize local CASC source.
+     */
+    async init() {
+        //log.write('Initializing local CASC installation: %s', this.dir);
 
-		// Filter known products.
-		this.builds = config.filter(entry => constants.PRODUCTS.some(e => e.product === entry.Product));
+        const buildInfo = path.join(this.dir, constants.BUILD.MANIFEST);
+        const data = await fsp.readFile(buildInfo, "utf8");
+        //const config = VersionConfig(await fsp.readFile(buildInfo, 'utf8'));
+        const config = VersionConfig(data);
 
-		//log.write('%o', this.builds);
-	}
+        // Filter known products.
+        this.builds = config.filter((entry) =>
+            constants.PRODUCTS.some((e) => e.product === entry.Product)
+        );
 
-	/**
-	 * Obtain a file by it's fileDataID.
-	 * @param {number} fileDataID 
-	 * @param {boolean} [partialDecryption=false]
-	 * @param {boolean} [suppressLog=false]
-	 * @param {boolean} [supportFallback=true]
-	 * @param {boolean} [forceFallback=false]
-	 * @param {string} [contentKey=null]
-	 */
-	async getFile(fileDataID, partialDecryption = false, suppressLog = false, supportFallback = true, forceFallback = false, contentKey = null) {
-		if (!suppressLog)
-			log.write('Loading local CASC file %d (%s)', fileDataID, listfile.getByID(fileDataID));
-			
-		const encodingKey = contentKey !== null ? super.getEncodingKeyForContentKey(contentKey) : await super.getFile(fileDataID);
-		const data = supportFallback ? await this.getDataFileWithRemoteFallback(encodingKey, forceFallback) : await this.getDataFile(encodingKey);
-		return new BLTEReader(data, encodingKey, partialDecryption);
-	}
+        //log.write('%o', this.builds);
+    }
 
-	/**
-	 * Returns a list of available products in the installation.
-	 * Format example: "PTR: World of Warcraft 8.3.0.32272"
-	 */
-	getProductList() {
-		const products = [];
-		for (const entry of this.builds) {
-			const product = constants.PRODUCTS.find(e => e.product === entry.Product);
-			products.push(util.format('%s (%s) %s', product.title, entry.Branch.toUpperCase(), entry.Version));
-		}
+    /**
+     * Obtain a file by it's fileDataID.
+     * @param {number} fileDataID
+     * @param {boolean} [partialDecryption=false]
+     * @param {boolean} [suppressLog=false]
+     * @param {boolean} [supportFallback=true]
+     * @param {boolean} [forceFallback=false]
+     * @param {string} [contentKey=null]
+     */
+    async getFile(
+        fileDataID,
+        partialDecryption = false,
+        suppressLog = false,
+        supportFallback = true,
+        forceFallback = false,
+        contentKey = null
+    ) {
+        if (!suppressLog)
+            log.write(
+                "Loading local CASC file %d (%s)",
+                fileDataID,
+                listfile.getByID(fileDataID)
+            );
 
-		return products;
-	}
+        const encodingKey =
+            contentKey !== null
+                ? super.getEncodingKeyForContentKey(contentKey)
+                : await super.getFile(fileDataID);
+        const data = supportFallback
+            ? await this.getDataFileWithRemoteFallback(
+                  encodingKey,
+                  forceFallback
+              )
+            : await this.getDataFile(encodingKey);
+        return new BLTEReader(data, encodingKey, partialDecryption);
+    }
 
-	/**
-	 * Load the CASC interface with the given build.
-	 * @param {number} buildIndex
-	 */
-	async load(buildIndex) {
-		this.build = this.builds[buildIndex];
-		log.write('Loading local CASC build: %o', this.build);
+    /**
+     * Returns a list of available products in the installation.
+     * Format example: "PTR: World of Warcraft 8.3.0.32272"
+     */
+    getProductList() {
+        const products = [];
+        for (const entry of this.builds) {
+            const product = constants.PRODUCTS.find(
+                (e) => e.product === entry.Product
+            );
+            products.push(
+                util.format(
+                    "%s (%s) %s",
+                    product.title,
+                    entry.Branch.toUpperCase(),
+                    entry.Version
+                )
+            );
+        }
 
-		this.cache = new BuildCache(this.build.BuildKey);
-		await this.cache.init();
+        return products;
+    }
 
-		//this.progress = core.createProgress(13);
-		await this.loadConfigs();
-		await this.loadIndexes();
-		await this.loadEncoding();
-		await this.loadRoot();
+    /**
+     * Load the CASC interface with the given build.
+     * @param {number} buildIndex
+     */
+    async load(buildIndex) {
+        this.build = this.builds[buildIndex];
+        log.write("Loading local CASC build: %o", this.build);
 
-		//core.view.casc = this;
+        this.cache = new BuildCache(this.build.BuildKey);
+        await this.cache.init();
 
-		await this.loadListfile(this.build.BuildKey);
-		await this.loadTables();
-		await this.filterListfile();
-		await this.initializeComponents();
-	}
+        //this.progress = core.createProgress(13);
+        await this.loadConfigs();
+        await this.loadIndexes();
+        await this.loadEncoding();
+        await this.loadRoot();
 
-	/**
-	 * Load the BuildConfig from the installation directory.
-	 */
-	async loadConfigs() {
-		// Load and parse BuildConfig from disk.
-		//await this.progress.step('Fetching build configurations');
-		this.buildConfig = CDNConfig(await fsp.readFile(this.formatConfigPath(this.build.BuildKey), 'utf8'));
-		this.cdnConfig = CDNConfig(await fsp.readFile(this.formatConfigPath(this.build.CDNKey), 'utf8'));
+        //core.view.casc = this;
 
-		log.write('BuildConfig: %o', this.buildConfig);
-		log.write('CDNConfig: %o', this.cdnConfig);
-	}
+        await this.loadListfile(this.build.BuildKey);
+        await this.loadTables();
+        await this.filterListfile();
+        await this.initializeComponents();
+    }
 
-	/**
-	 * Load and parse storage indexes from the local installation.
-	 */
-	async loadIndexes() {
-		//log.timeLog();
-		//await this.progress.step('Loading indexes');
+    /**
+     * Load the BuildConfig from the installation directory.
+     */
+    async loadConfigs() {
+        // Load and parse BuildConfig from disk.
+        //await this.progress.step('Fetching build configurations');
+        this.buildConfig = CDNConfig(
+            await fsp.readFile(
+                this.formatConfigPath(this.build.BuildKey),
+                "utf8"
+            )
+        );
+        this.cdnConfig = CDNConfig(
+            await fsp.readFile(this.formatConfigPath(this.build.CDNKey), "utf8")
+        );
 
-		let indexCount = 0;
+        log.write("BuildConfig: %o", this.buildConfig);
+        log.write("CDNConfig: %o", this.cdnConfig);
+    }
 
-		const entries = await fsp.readdir(this.storageDir, { withFileTypes: true });
-		for (const entry of entries) {
-			if (entry.isFile() && entry.name.endsWith('.idx')) {
-				await this.parseIndex(path.join(this.storageDir, entry.name));
-				indexCount++;
-			}
-		}
+    /**
+     * Load and parse storage indexes from the local installation.
+     */
+    async loadIndexes() {
+        //log.timeLog();
+        //await this.progress.step('Loading indexes');
 
-		//log.timeEnd('Loaded %d entries from %d journal indexes', this.localIndexes.size, indexCount);
-	}
+        let indexCount = 0;
 
-	/**
-	 * Parse a local installation journal index for entries.
-	 * @param {string} file Path to the index.
-	 */
-	async parseIndex(file) {
-		const entries = this.localIndexes;
-		const index = await BufferWrapper.readFile(file);
+        const entries = await fsp.readdir(this.storageDir, {
+            withFileTypes: true,
+        });
+        for (const entry of entries) {
+            if (entry.isFile() && entry.name.endsWith(".idx")) {
+                await this.parseIndex(path.join(this.storageDir, entry.name));
+                indexCount++;
+            }
+        }
 
-		const headerHashSize = index.readInt32LE();
-		index.move(4); // headerHash uint32
-		index.move(headerHashSize); // headerHash byte[headerHashSize]
+        //log.timeEnd('Loaded %d entries from %d journal indexes', this.localIndexes.size, indexCount);
+    }
 
-		index.seek((8 + headerHashSize + 0x0F) & 0xFFFFFFF0); // Next 0x10 boundary.
+    /**
+     * Parse a local installation journal index for entries.
+     * @param {string} file Path to the index.
+     */
+    async parseIndex(file) {
+        const entries = this.localIndexes;
+        const index = await BufferWrapper.readFile(file);
 
-		const dataLength = index.readInt32LE();
-		index.move(4);
+        const headerHashSize = index.readInt32LE();
+        index.move(4); // headerHash uint32
+        index.move(headerHashSize); // headerHash byte[headerHashSize]
 
-		const nBlocks = dataLength / 18;
-		for (let i = 0; i < nBlocks; i++) {
-			const key = index.readHexString(9);
-			if (entries.has(key)) {
-				index.move(1 + 4 + 4); // idxHigh + idxLow + size
-				continue;
-			}
+        index.seek((8 + headerHashSize + 0x0f) & 0xfffffff0); // Next 0x10 boundary.
 
-			const idxHigh = index.readUInt8();
-			const idxLow = index.readInt32BE();
+        const dataLength = index.readInt32LE();
+        index.move(4);
 
-			entries.set(key, {
-				index: (idxHigh << 2 | ((idxLow & 0xC0000000) >>> 30)),
-				offset: idxLow & 0x3FFFFFFF,
-				size: index.readInt32LE()
-			});
-		}
-	}
+        const nBlocks = dataLength / 18;
+        for (let i = 0; i < nBlocks; i++) {
+            const key = index.readHexString(9);
+            if (entries.has(key)) {
+                index.move(1 + 4 + 4); // idxHigh + idxLow + size
+                continue;
+            }
 
-	/**
-	 * Load and parse encoding from the local installation.
-	 */
-	async loadEncoding() {
-		// Parse encoding file.
-		//log.timeLog();
-		const encKeys = this.buildConfig.encoding.split(' ');
+            const idxHigh = index.readUInt8();
+            const idxLow = index.readInt32BE();
 
-		//await this.progress.step('Loading encoding table');
-		const encRaw = await this.getDataFileWithRemoteFallback(encKeys[1]);
-		await this.parseEncodingFile(encRaw, encKeys[1]);
-		//log.timeEnd('Parsed encoding table (%d entries)', this.encodingKeys.size);
-	}
+            entries.set(key, {
+                index: (idxHigh << 2) | ((idxLow & 0xc0000000) >>> 30),
+                offset: idxLow & 0x3fffffff,
+                size: index.readInt32LE(),
+            });
+        }
+    }
 
-	/**
-	 * Load and parse root table from local installation.
-	 */
-	async loadRoot() {
-		// Get root key from encoding table.
-		const rootKey = this.encodingKeys.get(this.buildConfig.root);
-		if (rootKey === undefined)
-			throw new Error('No encoding entry found for root key');
+    /**
+     * Load and parse encoding from the local installation.
+     */
+    async loadEncoding() {
+        // Parse encoding file.
+        //log.timeLog();
+        const encKeys = this.buildConfig.encoding.split(" ");
 
-		// Parse root file.
-		log.timeLog();
-		await this.progress.step('Loading root file');
-		const root = await this.getDataFileWithRemoteFallback(rootKey);
-		const rootEntryCount = await this.parseRootFile(root, rootKey);
-		log.timeEnd('Parsed root file (%d entries, %d types)', rootEntryCount, this.rootTypes.length);
-	}
+        //await this.progress.step('Loading encoding table');
+        const encRaw = await this.getDataFileWithRemoteFallback(encKeys[1]);
+        await this.parseEncodingFile(encRaw, encKeys[1]);
+        //log.timeEnd('Parsed encoding table (%d entries)', this.encodingKeys.size);
+    }
 
-	/**
-	 * Initialize a remote CASC instance to download missing
-	 * files needed during local initialization.
-	 */
-	async initializeRemoteCASC() {
-		const remote = new CASCRemote(this.build.Branch);
-		await remote.init();
+    /**
+     * Load and parse root table from local installation.
+     */
+    async loadRoot() {
+        // Get root key from encoding table.
+        const rootKey = this.encodingKeys.get( this.buildConfig.root );
+        if ( rootKey === undefined )
+        {
+            throw new Error("No encoding entry found for root key");
+        }
 
-		const buildIndex = remote.builds.findIndex(build => build.Product === this.build.Product);
-		await remote.preload(buildIndex, this.cache);
+        // Parse root file.
+        log.timeLog();
 
-		this.remote = remote;
-	}
+        //await this.progress.step("Loading root file");
+        const root              = await this.getDataFileWithRemoteFallback( rootKey );
+        const rootEntryCount    = await this.parseRootFile( root, rootKey );
+        
+        log.timeEnd(
+            "Parsed root file (%d entries, %d types)",
+            rootEntryCount,
+            this.rootTypes.length
+        );
+    }
 
-	/**
-	 * Obtain a data file from the local archives.
-	 * If not stored locally, file will be downloaded from a CDN.
-	 * @param {string} key 
-	 * @param {boolean} [forceFallback=false]
-	 */
-	async getDataFileWithRemoteFallback(key, forceFallback = false) {
-		try {
-			// If forceFallback is true, we have corrupt local data.
-			if (forceFallback)
-				throw new Error('Local data is corrupted, forceFallback set.');
+    /**
+     * Initialize a remote CASC instance to download missing
+     * files needed during local initialization.
+     */
+    async initializeRemoteCASC() {
+        const remote = new CASCRemote(this.build.Branch);
+        await remote.init();
 
-			// Attempt 1: Extract from local archives.
-			const local = await this.getDataFile(key);
+        const buildIndex = remote.builds.findIndex(
+            (build) => build.Product === this.build.Product
+        );
+        await remote.preload(buildIndex, this.cache);
 
-			if (!BLTEReader.check(local))
-				throw new Error('Local data file is not a valid BLTE');
+        this.remote = remote;
+    }
 
-			return local;
-		} catch (e) {
-			// Attempt 2: Load from cache from previous fallback.
-			log.write('Local file %s does not exist, falling back to cache...', key);
-			const cached = await this.cache.getFile(key, constants.CACHE.DIR_DATA);
-			if (cached !== null)
-				return cached;
+    /**
+     * Obtain a data file from the local archives.
+     * If not stored locally, file will be downloaded from a CDN.
+     * @param {string} key
+     * @param {boolean} [forceFallback=false]
+     */
+    async getDataFileWithRemoteFallback(key, forceFallback = false) {
+        try {
+            // If forceFallback is true, we have corrupt local data.
+            if (forceFallback)
+                throw new Error("Local data is corrupted, forceFallback set.");
 
-			// Attempt 3: Download from CDN.
-			log.write('Local file %s not cached, falling back to CDN...', key);
-			if (!this.remote)
-				await this.initializeRemoteCASC();
+            // Attempt 1: Extract from local archives.
+            const local = await this.getDataFile(key);
 
-			const archive = this.remote.archives.get(key);
-			let data;
-			if (archive !== undefined) {
-				// Archive exists for key, attempt partial remote download.
-				log.write('Local file %s has archive, attempt partial download...', key);
-				data = await this.remote.getDataFilePartial(this.remote.formatCDNKey(archive.key), archive.offset, archive.size);
-			} else {
-				// No archive for this file, attempt direct download.
-				log.write('Local file %s has no archive, attempting direct download...', key);
-				data = await this.remote.getDataFile(this.remote.formatCDNKey(key));
-			}
+            if (!BLTEReader.check(local))
+                throw new Error("Local data file is not a valid BLTE");
 
-			this.cache.storeFile(key, data, constants.CACHE.DIR_DATA);
-			return data;
-		}
-	}
+            return local;
+        } catch (e) {
+            // Attempt 2: Load from cache from previous fallback.
+            log.write(
+                "Local file %s does not exist, falling back to cache...",
+                key
+            );
+            const cached = await this.cache.getFile(
+                key,
+                constants.CACHE.DIR_DATA
+            );
+            if (cached !== null) return cached;
 
-	/**
-	 * Obtain a data file from the local archives.
-	 * @param {string} key
-	 */
-	async getDataFile(key) {
-		const entry = this.localIndexes.get(key.substring(0, 18));
-		if (!entry)
-			throw new Error('Requested file does not exist in local data: ' + key);
+            // Attempt 3: Download from CDN.
+            log.write("Local file %s not cached, falling back to CDN...", key);
+            if (!this.remote) await this.initializeRemoteCASC();
 
-		const data = await generics.readFile(this.formatDataPath(entry.index), entry.offset + 0x1E, entry.size - 0x1E);
+            const archive = this.remote.archives.get(key);
+            let data;
+            if (archive !== undefined) {
+                // Archive exists for key, attempt partial remote download.
+                log.write(
+                    "Local file %s has archive, attempt partial download...",
+                    key
+                );
+                data = await this.remote.getDataFilePartial(
+                    this.remote.formatCDNKey(archive.key),
+                    archive.offset,
+                    archive.size
+                );
+            } else {
+                // No archive for this file, attempt direct download.
+                log.write(
+                    "Local file %s has no archive, attempting direct download...",
+                    key
+                );
+                data = await this.remote.getDataFile(
+                    this.remote.formatCDNKey(key)
+                );
+            }
 
-		let isZeroed = true;
-		for (let i = 0, n = data.remainingBytes; i < n; i++) {
-			if (data.readUInt8() !== 0x0) {
-				isZeroed = false;
-				break;
-			}
-		}
+            this.cache.storeFile(key, data, constants.CACHE.DIR_DATA);
+            return data;
+        }
+    }
 
-		if (isZeroed)
-			throw new Error('Requested data file is empty or missing: ' + key);
+    /**
+     * Obtain a data file from the local archives.
+     * @param {string} key
+     */
+    async getDataFile(key) {
+        const entry = this.localIndexes.get(key.substring(0, 18));
+        if (!entry)
+            throw new Error(
+                "Requested file does not exist in local data: " + key
+            );
 
-		data.seek(0);
-		return data;
-	}
+        const data = await generics.readFile(
+            this.formatDataPath(entry.index),
+            entry.offset + 0x1e,
+            entry.size - 0x1e
+        );
 
-	/**
-	 * Format a local path to a data archive.
-	 * 67 -> <install>/Data/data/data.067
-	 * @param {number} id 
-	 */
-	formatDataPath(id) {
-		return path.join(this.dataDir, 'data', 'data.' + id.toString().padStart(3, '0'));
-	}
+        let isZeroed = true;
+        for (let i = 0, n = data.remainingBytes; i < n; i++) {
+            if (data.readUInt8() !== 0x0) {
+                isZeroed = false;
+                break;
+            }
+        }
 
-	/**
-	 * Format a local path to an archive index from the key.
-	 * 0b45bd2721fd6c86dac2176cbdb7fc5b -> <install>/Data/indices/0b45bd2721fd6c86dac2176cbdb7fc5b.index
-	 * @param {string} key 
-	 */
-	formatIndexPath(key) {
-		return path.join(this.dataDir, 'indices', key + '.index');
-	}
+        if (isZeroed)
+            throw new Error("Requested data file is empty or missing: " + key);
 
-	/**
-	 * Format a local path to a config file from the key.
-	 * 0af716e8eca5aeff0a3965d37e934ffa -> <install>/Data/config/0a/f7/0af716e8eca5aeff0a3965d37e934ffa
-	 * @param {string} key 
-	 */
-	formatConfigPath(key) {
-		return path.join(this.dataDir, 'config', this.formatCDNKey(key));
-	}
+        data.seek(0);
+        return data;
+    }
 
-	/**
-	 * Format a CDN key for use in local file reading.
-	 * Path separators used by this method are platform specific.
-	 * 49299eae4e3a195953764bb4adb3c91f -> 49\29\49299eae4e3a195953764bb4adb3c91f
-	 * @param {string} key 
-	 */
-	formatCDNKey(key) {
-		return path.join(key.substring(0, 2), key.substring(2, 4), key);
-	}
+    /**
+     * Format a local path to a data archive.
+     * 67 -> <install>/Data/data/data.067
+     * @param {number} id
+     */
+    formatDataPath(id) {
+        return path.join(
+            this.dataDir,
+            "data",
+            "data." + id.toString().padStart(3, "0")
+        );
+    }
 
-	/**
-	* Get the current build ID.
-	* @returns {string}
-	*/
-	getBuildName() {
-		return this.build.Version;
-	}
+    /**
+     * Format a local path to an archive index from the key.
+     * 0b45bd2721fd6c86dac2176cbdb7fc5b -> <install>/Data/indices/0b45bd2721fd6c86dac2176cbdb7fc5b.index
+     * @param {string} key
+     */
+    formatIndexPath(key) {
+        return path.join(this.dataDir, "indices", key + ".index");
+    }
 
-	/**
-	 * Returns the build configuration key.
-	 * @returns {string}
-	 */
-	getBuildKey() {
-		return this.build.BuildKey;
-	}
+    /**
+     * Format a local path to a config file from the key.
+     * 0af716e8eca5aeff0a3965d37e934ffa -> <install>/Data/config/0a/f7/0af716e8eca5aeff0a3965d37e934ffa
+     * @param {string} key
+     */
+    formatConfigPath(key) {
+        return path.join(this.dataDir, "config", this.formatCDNKey(key));
+    }
+
+    /**
+     * Format a CDN key for use in local file reading.
+     * Path separators used by this method are platform specific.
+     * 49299eae4e3a195953764bb4adb3c91f -> 49\29\49299eae4e3a195953764bb4adb3c91f
+     * @param {string} key
+     */
+    formatCDNKey(key) {
+        return path.join(key.substring(0, 2), key.substring(2, 4), key);
+    }
+
+    /**
+     * Get the current build ID.
+     * @returns {string}
+     */
+    getBuildName() {
+        return this.build.Version;
+    }
+
+    /**
+     * Returns the build configuration key.
+     * @returns {string}
+     */
+    getBuildKey() {
+        return this.build.BuildKey;
+    }
 }
 
 module.exports = CASCLocal;
