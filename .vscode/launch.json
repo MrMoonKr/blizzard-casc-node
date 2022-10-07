@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "[디버깅]현재파일",
-            "type": "pwa-node",
+            "type": "node",
             "request": "launch",
             "program": "${file}",
             "cwd": "${fileDirname}",
@@ -19,19 +19,21 @@
             ]
         },
         {
-            "name": "Launch Test",
-            "program": "${workspaceFolder}/test.js",
+            "name": "[디버깅]casc-local-test.js",
+            "type": "node",
             "request": "launch",
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "type": "pwa-node",
+            "program": "${workspaceFolder}/casc-local-test.js",
+            "cwd": "${workspaceFolder}",
             "args": [
                 "--max_old_space_size=8291",
+            ],
+            "skipFiles": [
+                "<node_internals>/**",
+                "node_modules/**"
             ]
         },
         {
-            "type": "pwa-node",
+            "type": "node",
             "request": "launch",
             "name": "Launch Program",
             "skipFiles": [
