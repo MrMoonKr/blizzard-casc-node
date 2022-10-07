@@ -82,9 +82,11 @@ const queue = async (items, handler, limit) => {
  * Ping a URL and measure the response time.
  * Not perfectly accurate, but good enough for our purposes.
  * Throws on error or HTTP code other than 200.
- * @param {string} url
+ * @param {String} url
+ * @return {Number} ping time
  */
-const ping = async (url) => {
+const ping = async ( url ) => 
+{
     const pingStart = Date.now();
     await get(url);
     //return Date.now() - pingStart;
@@ -97,25 +99,30 @@ const ping = async (url) => {
  * Consume the entire contents of a stream as a UTF8 string.
  * @param {Stream} stream
  */
-const consumeUTF8Stream = async (stream) => {
+const consumeUTF8Stream = async ( stream ) => 
+{
     return new Promise((resolve) => {
         let data = "";
         stream.setEncoding("utf8");
         stream.on("data", (chunk) => (data += chunk));
-        stream.on("end", () => resolve(data));
+        stream.on("end", () => resolve( data ) );
     });
 };
 
 /**
  * Attempt to parse JSON, returning undefined on failure.
  * Inline function to keep code paths clean of unnecessary try/catch blocks.
- * @param {string} data
- * @returns {object}
+ * @param {String} data
+ * @returns {Object} 
  */
-const parseJSON = (data) => {
-    try {
-        return JSON.parse(data);
-    } catch (e) {
+const parseJSON = ( data ) => 
+{
+    try 
+    {
+        return JSON.parse( data );
+    } 
+    catch ( e ) 
+    {
         return undefined;
     }
 };
@@ -124,37 +131,43 @@ const parseJSON = (data) => {
  * Obtain JSON from a remote end-point.
  * @param {string} url
  */
-const getJSON = async (url) => {
-    let res = await get(url);
+const getJSON = async ( url ) => 
+{
+    let res = await get( url );
 
     // Abort with anything other than HTTP 200 OK at this point.
-    if (res.statusCode !== 200)
-        throw new Error(
-            "Unable to request JSON from end-point. HTTP " + res.statusCode
-        );
+    if ( res.statusCode !== 200 )
+    {
+        throw new Error( "Unable to request JSON from end-point. HTTP " + res.statusCode );
+    }
 
-    return JSON.parse(await consumeUTF8Stream(res));
+    return JSON.parse( await consumeUTF8Stream( res ) );
 };
 
 /**
  * Read a JSON file from disk, returning NULL on error.
  * Provides basic pruning for comments (lines starting with //) with ignoreComments.
- * @param {string} file
- * @param {boolean} ignoreComments
+ * @param {String} file
+ * @param {Boolean} ignoreComments
  */
-const readJSON = async (file, ignoreComments = false) => {
-    try {
-        const raw = await fsp.readFile(file, "utf8");
-        if (ignoreComments)
+const readJSON = async ( file, ignoreComments = false ) => 
+{
+    try 
+    {
+        const raw = await fsp.readFile( file, "utf8" );
+        if ( ignoreComments )
+        {
             return JSON.parse(
-                raw
-                    .split(/\r?\n/)
-                    .filter((e) => !e.startsWith("//"))
-                    .join("\n")
+                raw.split( /\r?\n/ )
+                    .filter( ( e ) => !e.startsWith( "//" ) )
+                    .join( "\n" )
             );
+        }
 
-        return JSON.parse(raw);
-    } catch (e) {
+        return JSON.parse( raw );
+    } 
+    catch ( e ) 
+    {
         return null;
     }
 };
@@ -169,69 +182,66 @@ const readJSON = async (file, ignoreComments = false) => {
  * @param {number} partialLen Partial content size.
  * @param {boolean} deflate If true, will deflate data regardless of header.
  */
-const downloadFile = async (
-    url,
-    out,
-    partialOfs = -1,
-    partialLen = -1,
-    deflate = false
-) => {
+const downloadFile = async ( url, out, partialOfs = -1, partialLen = -1, deflate = false ) => 
+{
     const headers = { "Accept-Encoding": "gzip" };
-    if (partialOfs > -1 && partialLen > -1)
-        headers.Range = util.format(
-            "bytes=%d-%d",
+    if ( partialOfs > -1 && partialLen > -1 )
+    {
+        headers.Range = util.format( "bytes=%d-%d",
             partialOfs,
             partialOfs + partialLen - 1
         );
+    }
 
-    const res = await get(url, { headers });
+    const res = await get( url, { headers } );
 
-    if (res.statusCode !== 200 && res.statusCode !== 206)
-        throw new Error(
-            util.format(
-                "Unable to download file %s: HTTP %d",
-                url,
-                res.statusCode
-            )
-        );
+    if ( res.statusCode !== 200 && res.statusCode !== 206 )
+    {
+        throw new Error( util.format( "Unable to download file %s: HTTP %d",
+            url, res.statusCode
+        ) );
+    }
 
     let totalBytes = 0;
     let buffers = [];
 
     let source = res;
-    if (res.headers["content-encoding"] === "gzip") {
+    if ( res.headers["content-encoding"] === "gzip" ) 
+    {
         source = zlib.createGunzip();
-        res.pipe(source);
+        res.pipe( source );
     }
 
-    await new Promise((resolve) => {
-        source.on("data", (chunk) => {
+    await new Promise( ( resolve ) => {
+        source.on( "data", ( chunk ) => {
             totalBytes += chunk.byteLength;
-            buffers.push(chunk);
-        });
+            buffers.push( chunk );
+        } );
 
-        source.on("end", resolve);
+        source.on( "end", resolve );
     });
 
-    let merged = Buffer.concat(buffers, totalBytes);
+    let merged = Buffer.concat( buffers, totalBytes );
 
-    if (deflate) merged = await inflate(merged);
+    if ( deflate ) merged = await inflate( merged );
 
     // Write the file to disk if requested.
-    if (out) {
-        await createDirectory(path.dirname(out));
-        await fsp.writeFile(out, merged);
+    if ( out ) 
+    {
+        await createDirectory( path.dirname( out ) );
+        await fsp.writeFile( out, merged );
     }
 
-    return new BufferWrapper(merged);
+    return new BufferWrapper( merged );
 };
 
 /**
  * Create all directories in a given path if they do not exist.
- * @param {string} dir Directory path.
+ * @param {String} dir Directory path.
  */
-const createDirectory = async (dir) => {
-    await fsp.mkdir(dir, { recursive: true });
+const createDirectory = async ( dir ) => 
+{
+    await fsp.mkdir( dir, { recursive: true } );
 };
 
 /**
@@ -246,40 +256,46 @@ const redraw = async () => {
     });
 };
 
+
 const JEDEC = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
 
 /**
  * Format a number (bytes) to a displayable file size.
  * Simplified version of https://github.com/avoidwork/filesize.js
- * @param {number} input
+ * @param {Number} input
  */
-const filesize = (input) => {
-    if (isNaN(input)) return input;
+const filesize = ( input ) => 
+{
+    if ( isNaN( input ) ) return input;
 
-    input = Number(input);
+    input = Number( input );
     const isNegative = input < 0;
     const result = [];
 
     // Flipping a negative number to determine the size.
-    if (isNegative) input = -input;
+    if ( isNegative ) input = -input;
 
     // Determining the exponent.
-    let exponent = Math.floor(Math.log(input) / Math.log(1024));
-    if (exponent < 0) exponent = 0;
+    let exponent = Math.floor( Math.log( input ) / Math.log( 1024 ) );
+    if ( exponent < 0 ) exponent = 0;
 
     // Exceeding supported length, time to reduce & multiply.
-    if (exponent > 8) exponent = 8;
+    if ( exponent > 8 ) exponent = 8;
 
     // Zero is now a special case because bytes divide by 1.
-    if (input === 0) {
+    if ( input === 0 ) 
+    {
         result[0] = 0;
         result[1] = JEDEC[exponent];
-    } else {
-        const val = input / Math.pow(2, exponent * 10);
+    } 
+    else 
+    {
+        const val = input / Math.pow( 2, exponent * 10 );
 
-        result[0] = Number(val.toFixed(exponent > 0 ? 2 : 0));
+        result[0] = Number( val.toFixed( exponent > 0 ? 2 : 0 ) );
 
-        if (result[0] === 1024 && exponent < 8) {
+        if ( result[0] === 1024 && exponent < 8) 
+        {
             result[0] = 1;
             exponent++;
         }
@@ -288,7 +304,7 @@ const filesize = (input) => {
     }
 
     // Decorating a 'diff'.
-    if (isNegative) result[0] = -result[0];
+    if ( isNegative ) result[0] = -result[0];
 
     return result.join(" ");
 };
@@ -311,28 +327,35 @@ const getFileHash = async (file, method, encoding) => {
 
 /**
  * Wrapper for asynchronously checking if a file exists.
- * @param {string} file
+ * @param {String} file
+ * @return {Boolean}
  */
-const fileExists = async (file) => {
-    try {
-        await fsp.access(file);
+const fileExists = async ( file ) => 
+{
+    try 
+    {
+        await fsp.access( file );
         return true;
-    } catch (e) {
+    } 
+    catch ( e ) 
+    {
         return false;
     }
 };
 
 /**
  * Read a portion of a file.
- * @param {string} file Path of the file.
- * @param {number} offset Offset to start reading from
- * @param {number} length Total bytes to read.
+ * @param {String} file Path of the file.
+ * @param {Number} offset Offset to start reading from
+ * @param {Number} length Total bytes to read.
+ * @return {BufferWrapper}
  */
-const readFile = async (file, offset, length) => {
-    const fd = await fsp.open(file);
-    const buf = BufferWrapper.alloc(length);
+const readFile = async ( file, offset, length ) => 
+{
+    const fd  = await fsp.open( file );
+    const buf = BufferWrapper.alloc( length );
 
-    await fd.read(buf.raw, 0, length, offset);
+    await fd.read( buf.raw, 0, length, offset );
     await fd.close();
 
     return buf;
@@ -341,26 +364,35 @@ const readFile = async (file, offset, length) => {
 /**
  * Recursively delete a directory and everything inside of it.
  * Returns the total size of all files deleted.
- * @param {string} dir
+ * @param {String} dir
+ * @return {Number} total size of all files deleted
  */
-const deleteDirectory = async (dir) => {
+const deleteDirectory = async ( dir ) => 
+{
     let deleteSize = 0;
-    try {
-        const entries = await fsp.readdir(dir);
-        for (const entry of entries) {
-            const entryPath = path.join(dir, entry);
-            const entryStat = await fsp.stat(entryPath);
+    try 
+    {
+        const entries = await fsp.readdir( dir );
+        for ( const entry of entries ) 
+        {
+            const entryPath = path.join( dir, entry );
+            const entryStat = await fsp.stat( entryPath );
 
-            if (entryStat.isDirectory()) {
-                deleteSize += await deleteDirectory(entryPath);
-            } else {
-                await fsp.unlink(entryPath);
+            if ( entryStat.isDirectory() ) 
+            {
+                deleteSize += await deleteDirectory( entryPath );
+            } 
+            else
+            {
+                await fsp.unlink( entryPath );
                 deleteSize += entryStat.size;
             }
         }
 
-        await fsp.rmdir(dir);
-    } catch (e) {
+        await fsp.rmdir( dir );
+    } 
+    catch ( e ) 
+    {
         // Something failed to delete.
     }
 

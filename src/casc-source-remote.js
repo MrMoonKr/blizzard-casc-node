@@ -18,13 +18,19 @@ const BLTEReader = require("./blte-reader").BLTEReader;
 
 const EMPTY_HASH = "00000000000000000000000000000000";
 
+/**
+ * TACT - Trusted Application Content Transfer.
+ * https://wowdev.wiki/TACT.
+ */
 class CASCRemote extends CASC {
+
     /**
      * Create a new CASC source using a Blizzard CDN.
      * @param {String} region Region tag (eu, us, etc).
      */
-    constructor(region) {
-        super(true);
+    constructor( region ) 
+    {
+        super( true );
 
         this.archives = new Map();
         /**
@@ -36,12 +42,17 @@ class CASCRemote extends CASC {
     /**
      * Initialize remote CASC source.
      */
-    async init() {
-        log.write("Initializing remote CASC source (%s)", this.region);
+    async init() 
+    {
+        log.write( "Initializing remote CASC source (%s)", this.region );
+
         /**
          * @type {String} http://%s.patch.battle.net:1119/
          */
-        this.host = util.format(constants.PATCH.HOST, this.region); //http://%s.patch.battle.net:1119/
+        this.host = util.format( constants.PATCH.HOST, this.region );
+        /**
+         * @type {Array<Versions>}
+         */
         this.builds = [];
 
         // Collect version configs for all products.
@@ -51,42 +62,51 @@ class CASCRemote extends CASC {
         const results = await Promise.allSettled( promises );
 
         // Iterate through successful requests and extract product config for our region.
-        for (const result of results) 
+        for ( const result of results ) 
         {
-            if (result.status === "fulfilled")
+            if ( result.status === "fulfilled" )
             {  
-                this.builds.push(
-                    result.value.find( (e) => e.Region === this.region )
-                );
+                this.builds.push( result.value.find( ( e ) => e.Region === this.region ) );
             }
         }
 
-        log.write("%o", this.builds);
+        log.write( "%o", this.builds );
     }
 
     /**
-     * Download the remote version config for a specific product.
-     * @param {string} product
+     * Download the remote version config for a specific product. ~/wow/versions
+     * @param {String} product "wow", "w3", "d3", ... 
+     * 
+     * @return {Array<Versions>}
      */
-    async getVersionConfig(product) {
+    async getVersionConfig( product ) 
+    {
+        /**
+         * @type {Array<Versions>}
+         */
         const config = await this.getConfig(
             product,
-            constants.PATCH.VERSION_CONFIG
+            constants.PATCH.VERSION_CONFIG // "/versions"
         );
-        config.forEach((entry) => (entry.Product = product));
+
+        config.forEach( ( entry ) => ( entry.Product = product ) );
         return config;
     }
 
     /**
-     * Download and parse a version config file.
-     * @param {string} product
-     * @param {string} file
+     * Download and parse a version config file. ~/wow/versions or ~/wow/cdns
+     * @param {String} product "wow"
+     * @param {String} file "/versions" , "/cdns"
+     * 
+     * @return {Array<Versions>|Array<CDNS>}
      */
-    async getConfig(product, file) {
+    async getConfig( product, file ) 
+    {
         const url = this.host + product + file;
-        const res = await generics.get(url);
+        const res = await generics.get( url );
 
-        if (res.statusCode !== 200) {
+        if ( res.statusCode !== 200 ) 
+        {
             throw new Error(
                 util.format(
                     "HTTP %d from remote CASC endpoint: %s",
@@ -96,7 +116,7 @@ class CASCRemote extends CASC {
             );
         }
 
-        return VersionConfig(await generics.consumeUTF8Stream(res));
+        return VersionConfig( await generics.consumeUTF8Stream( res ) );
     }
 
     /**
@@ -219,17 +239,21 @@ class CASCRemote extends CASC {
     /**
      * Preload requirements for reading remote files without initializing the
      * entire instance. Used by local CASC install for CDN fallback.
-     * @param {number} buildIndex
-     * @param {Object} cache
+     * @param {Number} buildIndex
+     * @param {BuildCache} cache
      */
-    async preload(buildIndex, cache = null) {
+    async preload( buildIndex, cache = null ) 
+    {
         this.build = this.builds[buildIndex];
         log.write("Preloading remote CASC build: %o", this.build);
 
-        if (cache) {
+        if ( cache ) 
+        {
             this.cache = cache;
-        } else {
-            this.cache = new BuildCache(this.build.BuildConfig);
+        } 
+        else 
+        {
+            this.cache = new BuildCache( this.build.BuildConfig );
             await this.cache.init();
         }
 
@@ -241,21 +265,22 @@ class CASCRemote extends CASC {
 
     /**
      * Load the CASC interface with the given build.
-     * @param {number} buildIndex
+     * @param {Number} buildIndex most 0
      */
-    async load(buildIndex) {
-        this.progress = core.createProgress(16);
-        await this.preload(buildIndex);
+    async load( buildIndex ) 
+    {
+        //this.progress = core.createProgress(16);
+        await this.preload( buildIndex );
 
         await this.loadEncoding();
         await this.loadRoot();
 
-        core.view.casc = this;
+        //core.view.casc = this;
 
         await this.loadListfile( this.build.BuildConfig );
-        await this.loadTables();
-        await this.filterListfile();
-        await this.initializeComponents();
+        //await this.loadTables();
+        //await this.filterListfile();
+        //await this.initializeComponents();
     }
 
     /**
@@ -375,25 +400,31 @@ class CASCRemote extends CASC {
 
     /**
      * Download the CDN configuration and store the entry for our
-     * selected region.
+     * selected region. ~/wow/cdns
      */
-    async loadServerConfig() {
-        if (this.progress)
-            await this.progress.step("Fetching CDN configuration");
+    async loadServerConfig() 
+    {
+        // if (this.progress)
+        //     await this.progress.step("Fetching CDN configuration");
 
         // Download CDN server list.
+        /**
+         * @type {Array<CDNS>}
+         */
         const serverConfigs = await this.getConfig(
             this.build.Product,
             constants.PATCH.SERVER_CONFIG
         );
-        log.write("%o", serverConfigs);
+        log.write( "%o", serverConfigs );
 
         // Locate the CDN entry for our selected region.
-        this.serverConfig = serverConfigs.find((e) => e.Name === this.region);
-        if (!this.serverConfig)
+        this.serverConfig = serverConfigs.find( ( e ) => e.Name === this.region );
+        if ( !this.serverConfig )
+        {
             throw new Error(
                 "CDN config does not contain entry for region " + this.region
             );
+        }
     }
 
     /**
@@ -487,11 +518,12 @@ class CASCRemote extends CASC {
      * Run a ping for all hosts in the server config and resolve fastest.
      * Returns NULL if all the hosts failed to ping.
      */
-    async resolveCDNHost() {
-        if (this.progress)
-            await this.progress.step("Locating fastest CDN server");
+    async resolveCDNHost() 
+    {
+        // if (this.progress)
+        //     await this.progress.step("Locating fastest CDN server");
 
-        log.write("Resolving best host: %s", this.serverConfig.Hosts);
+        log.write( "Resolving best host: %s", this.serverConfig.Hosts );
 
         let bestHost = null;
         const hosts = this.serverConfig.Hosts.split(" ").map(
@@ -499,10 +531,11 @@ class CASCRemote extends CASC {
         );
         const hostPings = [];
 
-        for (const host of hosts) {
+        for ( const host of hosts ) 
+        {
             hostPings.push(
                 generics
-                    .ping(host)
+                    .ping( host )
                     .then((ping) => {
                         log.write(
                             "Host %s resolved with %dms ping",

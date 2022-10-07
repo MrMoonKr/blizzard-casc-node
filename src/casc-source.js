@@ -22,12 +22,18 @@ const DBCreatures = require("./db/caches/DBCreatures");
 const ENC_MAGIC = 0x4e45;
 const ROOT_MAGIC = 0x4d465354;
 
+
+/**
+ * Blizzard Content Transfer System
+ * https://wowdev.wiki/TACT.
+ * https://wowdev.wiki/CASC.
+ */
 class CASC {
 
     constructor( isRemote = false ) 
     {
         /**
-         * @type {Map<String,Number>} ( ContentKey, Size ) 룩업테이블
+         * @type {Map<String,Number>} ( ContentKey, EncodingSize ) 룩업테이블
          */
         this.encodingSizes = new Map();
         /**
@@ -35,7 +41,13 @@ class CASC {
          */
         this.encodingKeys = new Map();
         this.rootTypes = [];
+        /**
+         * @type {Map<Number,Map<Number,String>>} ( fileDataID, ( rootTypeIndex, ContentKey ) )
+         */
         this.rootEntries = new Map();
+        /**
+         * @type {Boolean} contents are located in remote server
+         */
         this.isRemote = isRemote;
 
         // Listen for configuration changes to cascLocale.
@@ -106,7 +118,8 @@ class CASC {
     /**
      * Obtain a file by it's fileDataID.
      * 
-     * @param {number} fileDataID
+     * @param {Number} fileDataID
+     * @return {String} EncodingKey
      */
     async getFile( fileDataID ) 
     {
@@ -148,14 +161,16 @@ class CASC {
     }
 
     /**
-     * @param {string} contentKey
-     * @returns {string}
+     * @param {String} contentKey ContentKey
+     * @returns {String} EncodingKey
      */
     getEncodingKeyForContentKey( contentKey ) 
     {
         const encodingKey = this.encodingKeys.get( contentKey );
         if ( encodingKey === undefined )
+        {
             throw new Error("No encoding entry found: " + contentKey);
+        }
 
         // This underlying implementation returns the encoding key rather than a
         // data file, allowing CASCLocal and CASCRemote to implement readers.
@@ -179,7 +194,7 @@ class CASC {
         forceFallback = false
     ) 
     {
-        const fileDataID = listfile.getByFilename( fileName );
+        const fileDataID = listfile.getByFilename( fileName ); // get fileDataID from fileName at listfile
         if ( fileDataID === undefined )
         {
             throw new Error( "File not mapping in listfile: " + fileName );
@@ -258,20 +273,20 @@ class CASC {
      */
     async filterListfile() {
         // Pre-filter extensions for tabs.
-        await this.progress.step("Filtering listfiles");
+        //await this.progress.step("Filtering listfiles");
 
-        core.events.on("listfile-needs-updating", () =>
-            this.updateListfileFilters()
-        );
+        // core.events.on("listfile-needs-updating", () =>
+        //     this.updateListfileFilters()
+        // );
 
-        core.view.$watch("config.listfileSortByID", () =>
-            core.events.emit("listfile-needs-updating")
-        );
-        core.view.$watch(
-            "config.listfileShowFileDataIDs",
-            () => core.events.emit("listfile-needs-updating"),
-            { immediate: true }
-        );
+        // core.view.$watch("config.listfileSortByID", () =>
+        //     core.events.emit("listfile-needs-updating")
+        // );
+        // core.view.$watch(
+        //     "config.listfileShowFileDataIDs",
+        //     () => core.events.emit("listfile-needs-updating"),
+        //     { immediate: true }
+        // );
     }
 
     /**
@@ -322,17 +337,17 @@ class CASC {
      * This allows us to do it seamlessly under the cover of the same loading screen.
      */
     async initializeComponents() {
-        await this.progress.step("Initializing components");
-        await core.runLoadFuncs();
+        //await this.progress.step("Initializing components");
+        //await core.runLoadFuncs();
 
         // Dispatch RCP hook.
-        core.rcp.dispatchHook("HOOK_INSTALL_READY", {
-            type: this.constructor.name,
-            build: this.build,
-            buildConfig: this.buildConfig,
-            buildName: this.getBuildName(),
-            buildKey: this.getBuildKey(),
-        });
+        // core.rcp.dispatchHook("HOOK_INSTALL_READY", {
+        //     type: this.constructor.name,
+        //     build: this.build,
+        //     buildConfig: this.buildConfig,
+        //     buildName: this.getBuildName(),
+        //     buildKey: this.getBuildKey(),
+        // });
     }
 
     /**
@@ -398,43 +413,49 @@ class CASC {
                 // rootTypes.length can be used for the type index above.
                 rootTypes.push({ contentFlags, localeFlags });
             }
-        } else {
+        } 
+        else 
+        {
             // Classic
-            root.seek(0);
-            while (root.remainingBytes > 0) {
+            root.seek( 0 );
+            while ( root.remainingBytes > 0 ) 
+            {
                 const numRecords = root.readUInt32LE();
 
                 const contentFlags = root.readUInt32LE();
                 const localeFlags = root.readUInt32LE();
 
-                const fileDataIDs = new Array(numRecords);
+                const fileDataIDs = new Array( numRecords );
 
                 let fileDataID = 0;
-                for (let i = 0; i < numRecords; i++) {
+                for ( let i = 0 ; i < numRecords ; i++ ) 
+                {
                     const nextID = fileDataID + root.readInt32LE();
                     fileDataIDs[i] = nextID;
                     fileDataID = nextID + 1;
                 }
 
                 // Parse MD5 content keys for entries.
-                for (let i = 0; i < numRecords; i++) {
+                for ( let i = 0 ; i < numRecords ; i++ ) 
+                {
                     const key = root.readHexString(16);
                     root.move(8); // hash
 
                     const fileDataID = fileDataIDs[i];
-                    let entry = rootEntries.get(fileDataID);
+                    let entry = rootEntries.get( fileDataID );
 
-                    if (!entry) {
+                    if ( !entry ) 
+                    {
                         entry = new Map();
-                        rootEntries.set(fileDataID, entry);
+                        rootEntries.set( fileDataID, entry );
                     }
 
-                    entry.set(rootTypes.length, key);
+                    entry.set( rootTypes.length, key );
                 }
 
                 // Push the rootType after parsing the block so that
                 // rootTypes.length can be used for the type index above.
-                rootTypes.push({ contentFlags, localeFlags });
+                rootTypes.push( { contentFlags, localeFlags } );
             }
         }
 
@@ -498,7 +519,8 @@ class CASC {
      * Run any necessary clean-up once a CASC instance is no longer
      * needed. At this point, the instance must be made eligible for GC.
      */
-    cleanup() {
+    cleanup() 
+    {
         this.unhookConfig();
     }
 }

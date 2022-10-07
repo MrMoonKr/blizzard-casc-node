@@ -24,7 +24,7 @@ const CASCRemote = require("./casc-source-remote");
  * Local CASC installed
  */
 class CASCLocal extends CASC {
-    
+
     /**
      * Create a new CASC source using a local installation.
      * @param {String} installPath Installation path.
@@ -226,7 +226,8 @@ class CASCLocal extends CASC {
     /**
      * Load and parse encoding from the local installation.
      */
-    async loadEncoding() {
+    async loadEncoding() 
+    {
         // Parse encoding file.
         //log.timeLog();
         const encKeys = this.buildConfig.encoding.split(" ");
@@ -240,7 +241,8 @@ class CASCLocal extends CASC {
     /**
      * Load and parse root table from local installation.
      */
-    async loadRoot() {
+    async loadRoot() 
+    {
         // Get root key from encoding table.
         const rootKey = this.encodingKeys.get( this.buildConfig.root );
         if ( rootKey === undefined )
