@@ -75,8 +75,10 @@ const openRuntimeLog = () => {
 /**
  * Write a message to the log.
  */
-const write = (...parameters) => {
-	const line = '[' + getTimestamp() + '] ' + util.format(...parameters) + '\n';
+const write = (...parameters) => 
+{
+	//const line = '[' + getTimestamp() + '] ' + util.format(...parameters) + '\n';
+	const line = '[' + getTimestamp() + '] ' + util.format(...parameters) ;
 
 	/*if (!isClogged) {
 		isClogged = !stream.write(line);

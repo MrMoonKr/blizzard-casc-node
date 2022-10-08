@@ -1,6 +1,13 @@
 
 
 /**
+ * @typedef {Object} ArchiveIndexChunk
+ * @property {String} key Archive Key ( Hash of Name )
+ * @property {Number} size CompressedSize
+ * @property {Number} offset Archive Offset
+ */
+
+/**
  * BLTE Block
  * @typedef {Object} BLTEBlock
  * @property {Number} CompSize

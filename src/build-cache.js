@@ -103,10 +103,12 @@ class BuildCache {
     }
 
     /**
+     * 캐싱된 로컬 파일을 읽어들인다
      * Attempt to get a file from this build cache.
      * Returns NULL if the file is not cached.
      * @param {String} file File path relative to build cache.
      * @param {String} dir Optional override directory.
+     * @return {Promise<BufferWrapper|null}
      */
     async getFile( file, dir ) 
     {
@@ -149,6 +151,7 @@ class BuildCache {
     }
 
     /**
+     * 캐싱할 파일의 로컬 경로 얻기
      * Get a direct path to a cached file.
      * @param {String} file File path relative to build cache.
      * @param {String} dir Optional override directory.

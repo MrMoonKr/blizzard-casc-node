@@ -32,6 +32,9 @@ class CASCRemote extends CASC {
     {
         super( true );
 
+        /**
+         * @type {Map<String,ArchiveIndexChunk>} ( EncodingKey, {ArchiveName,Size,Offset} )
+         */
         this.archives = new Map();
         /**
          * @type {String} "eu", "us", "kr", "cn", "tw"
@@ -174,11 +177,12 @@ class CASCRemote extends CASC {
             constants.CACHE.DIR_DATA
         );
 
-        if (data === null) {
-            const archive = this.archives.get(encodingKey);
-            if (archive !== undefined) {
+        if ( data === null ) {
+            const archive = this.archives.get( encodingKey );
+            if ( archive !== undefined ) 
+            {
                 data = await this.getDataFilePartial(
-                    this.formatCDNKey(archive.key),
+                    this.formatCDNKey( archive.key ),
                     archive.offset,
                     archive.size
                 );
@@ -260,7 +264,7 @@ class CASCRemote extends CASC {
         await this.loadServerConfig();
         await this.resolveCDNHost();
         await this.loadConfigs();
-        //await this.loadArchives();
+        await this.loadArchives();
     }
 
     /**
@@ -394,7 +398,7 @@ class CASCRemote extends CASC {
         // Quick and dirty way to get the total archive size using config.
         let archiveTotalSize = this.cdnConfig.archivesIndexSize
             .split(" ")
-            .reduce((x, e) => Number(x) + Number(e));
+            .reduce( ( x, e ) => Number(x) + Number(e) ); // Array.reduce( acc, cur, idx )
 
         log.write( "Loaded %d archives (%d entries, %s)",
             archiveCount, this.archives.size, generics.filesize( archiveTotalSize ) );
@@ -448,35 +452,38 @@ class CASCRemote extends CASC {
     {
         const fileName = key + ".index";
 
-        let data = await this.cache.getFile(
-            fileName,
-            constants.CACHE.DIR_INDEXES
-        );
+        let data = await this.cache.getFile( fileName, constants.CACHE.DIR_INDEXES );
         if ( data === null ) 
         {
             const cdnKey = this.formatCDNKey( key ) + ".index";
             data = await this.getDataFile( cdnKey );
-
             this.cache.storeFile( fileName, data, constants.CACHE.DIR_INDEXES );
+
+            log.write( "인덱스파일 저장 : %s" , cdnKey );
         }
 
         // Skip to the end of the archive to find the count.
         data.seek(-12);
         const count = data.readInt32LE();
 
-        if (count * 24 > data.byteLength)
-            throw new Error(
-                "Unable to parse archive, unexpected size: " + data.byteLength
+        if ( count * 24 > data.byteLength )
+        {
+            throw new Error( "Unable to parse archive, unexpected size: " + 
+                data.byteLength
             );
+        }
 
-        data.seek(0); // Reset position.
+        data.seek( 0 ); // Reset position.
 
         for ( let i = 0 ; i < count ; i++ ) 
         {
             let hash = data.readHexString(16);
 
             // Skip zero hashes.
-            if ( hash === EMPTY_HASH ) hash = data.readHexString( 16 );
+            if ( hash === EMPTY_HASH ) 
+            {
+                hash = data.readHexString( 16 );
+            }
 
             this.archives.set( hash, {
                 key,
@@ -497,13 +504,15 @@ class CASCRemote extends CASC {
     }
 
     /**
+     * 원격 파일의 일부분만 다운로드하여 버퍼로 받기
      * Download a partial chunk of a data file from the CDN.
-     * @param {string} file
-     * @param {number} ofs
-     * @param {number} len
+     * @param {String} file URL of Remote File ( Archive )
+     * @param {number} ofs Offset of File
+     * @param {number} len Size of File
      * @returns {BufferWrapper}
      */
-    async getDataFilePartial(file, ofs, len) {
+    async getDataFilePartial( file, ofs, len ) 
+    {
         return await generics.downloadFile(
             this.host + "data/" + file,
             null,
