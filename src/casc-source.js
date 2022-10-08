@@ -471,7 +471,7 @@ class CASC {
     async parseEncodingFile( data, hash ) 
     {
         const encodingSizes = this.encodingSizes;
-        const encodingKeys = this.encodingKeys;
+        const encodingKeys  = this.encodingKeys;
 
         const encoding = new BLTEReader( data, hash );
 

@@ -16,6 +16,8 @@ const WDCReader = require("./db/WDCReader");
 const DBTextureFileData = require("./db/caches/DBTextureFileData");
 const DBModelFileData = require("./db/caches/DBModelFileData");
 
+const BuildCache = require('./build-cache');
+
 /**
  * @type {Map<String,Number>} ( fileName, fileDataID ) 룩업테이블
  */
@@ -51,6 +53,7 @@ const loadListfile = async ( buildConfig, cache, rootEntries ) =>
     {
         url = util.format( url, buildConfig );
     }
+    log.write( "listfile 다운로드 주소 : %s", url );
 
     idLookup.clear();
     nameLookup.clear();
@@ -99,8 +102,7 @@ const loadListfile = async ( buildConfig, cache, rootEntries ) =>
         {
             // This listfile has never been updated.
             requireDownload = true;
-            log.write(
-                "Listfile for %s is not cached, downloading fresh.",
+            log.write( "Listfile for %s is not cached, downloading fresh.",
                 buildConfig
             );
         }
@@ -109,6 +111,7 @@ const loadListfile = async ( buildConfig, cache, rootEntries ) =>
         {
             try 
             {
+                log.write( "listfile 다운로드 시작 : %s", url );
                 data = await generics.downloadFile( url );
                 cache.storeFile( constants.CACHE.BUILD_LISTFILE, data );
 

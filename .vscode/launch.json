@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "[디버깅]현재파일",
+            "name": "[디버깅] 현재파일",
             "type": "node",
             "request": "launch",
             "program": "${file}",

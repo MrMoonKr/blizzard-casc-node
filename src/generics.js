@@ -182,7 +182,7 @@ const readJSON = async ( file, ignoreComments = false ) =>
  * @param {number} partialLen Partial content size.
  * @param {boolean} deflate If true, will deflate data regardless of header.
  */
-const downloadFile = async ( url, out, partialOfs = -1, partialLen = -1, deflate = false ) => 
+const downloadFile = async ( url, out = null, partialOfs = -1, partialLen = -1, deflate = false ) => 
 {
     const headers = { "Accept-Encoding": "gzip" };
     if ( partialOfs > -1 && partialLen > -1 )

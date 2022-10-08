@@ -69,7 +69,14 @@ GET http://kr.patch.battle.net:1119/w3/cdns
 ###
 GET http://kr.patch.battle.net:1119/d3/cdns
 
+###
+GET http://kr.patch.battle.net:1119/catalogs/versions
 
+###
+GET http://us.patch.battle.net:1119/catalogs/versions
+
+###
+GET http://us.patch.battle.net:1119/catalogs/cdns
 
 
 

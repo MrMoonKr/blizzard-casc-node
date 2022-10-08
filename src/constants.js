@@ -11,7 +11,7 @@ const path = require('path');
 const isUnitTest = typeof nw === 'undefined';
 
 const INSTALL_PATH = isUnitTest ? process.cwd() : path.dirname(process.execPath);
-const DATA_PATH = isUnitTest ? "./tests/user_data" : nw.App.dataPath;
+const DATA_PATH = isUnitTest ? "./cache/user_data" : nw.App.dataPath;
 
 const UPDATER_EXT = { win32: '.exe', darwin: '.app' };
 

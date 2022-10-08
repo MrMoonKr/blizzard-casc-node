@@ -120,7 +120,7 @@ class BLTEReader extends BufferWrapper {
         this.blocks = new Array( numBlocks );
         let allocSize = 0;
 
-        for (let i = 0; i < numBlocks; i++) 
+        for ( let i = 0 ; i < numBlocks ; i++ )
         {
             /**
              * @type {BLTEBlock}
@@ -159,12 +159,13 @@ class BLTEReader extends BufferWrapper {
     /**
      * Process the next BLTE block.
      */
-    _processBlock() {
+    _processBlock() 
+    {
         // No more blocks to process.
-        if (this.blockIndex === this.blocks.length) return false;
+        if ( this.blockIndex === this.blocks.length ) return false;
 
         const oldPos = this.offset;
-        this.seek(this.blockWriteIndex);
+        this.seek( this.blockWriteIndex );
 
         const block = this.blocks[this.blockIndex];
         const bltePos = this._blte.offset;
@@ -196,22 +197,26 @@ class BLTEReader extends BufferWrapper {
     /**
      * Handle a BLTE block.
      * @param {BufferWrapper} block
-     * @param {number} blockEnd
-     * @param {number} index
+     * @param {Number} blockEnd
+     * @param {Number} index
      */
-    _handleBlock(block, blockEnd, index) {
+    _handleBlock( block, blockEnd, index ) 
+    {
         const flag = block.readUInt8();
-        switch (flag) {
+        switch ( flag ) 
+        {
             case 0x45: // Encrypted
-                try {
+                try 
+                {
                     const decrypted = this._decryptBlock(
-                        block,
-                        blockEnd,
-                        index
+                        block, blockEnd, index
                     );
-                    this._handleBlock(decrypted, decrypted.byteLength, index);
-                } catch (e) {
-                    if (e instanceof EncryptionError) {
+                    this._handleBlock( decrypted, decrypted.byteLength, index );
+                } 
+                catch ( e ) 
+                {
+                    if ( e instanceof EncryptionError ) 
+                    {
                         // Partial decryption allows us to leave zeroed data.
                         if (this.partialDecrypt)
                             this._ofs += this.blocks[index].DecompSize;
@@ -224,12 +229,12 @@ class BLTEReader extends BufferWrapper {
             case 0x46: // Frame (Recursive)
                 throw new Error("[BLTE] No frame decoder implemented!");
 
-            case 0x4e: // Frame (Normal)
-                this._writeBufferBLTE(block, blockEnd);
+            case 0x4e: // Frame ( Normal )
+                this._writeBufferBLTE( block, blockEnd );
                 break;
 
             case 0x5a: // Compressed
-                this._decompressBlock(block, blockEnd, index);
+                this._decompressBlock( block, blockEnd, index );
                 break;
 
             default:
@@ -240,8 +245,8 @@ class BLTEReader extends BufferWrapper {
     /**
      * Decompress BLTE block.
      * @param {BufferWrapper} data
-     * @param {number} blockEnd
-     * @param {number} index
+     * @param {Number} blockEnd
+     * @param {Number} index
      */
     _decompressBlock(data, blockEnd, index) {
         const decomp = data.readBuffer(blockEnd - data.offset, true, true);
@@ -307,25 +312,28 @@ class BLTEReader extends BufferWrapper {
      * Write the contents of a buffer to this instance.
      * Skips bound checking for BLTE internal writing.
      * @param {BufferWrapper} buf
-     * @param {number} blockEnd
+     * @param {Number} blockEnd
      */
-    _writeBufferBLTE(buf, blockEnd) {
-        buf.raw.copy(this._buf, this._ofs, buf.offset, blockEnd);
+    _writeBufferBLTE( buf, blockEnd ) 
+    {
+        buf.raw.copy( this._buf, this._ofs, buf.offset, blockEnd );
         this._ofs += blockEnd - buf.offset;
     }
 
     /**
      * Check a given length does not exceed current capacity.
-     * @param {number} length
+     * @param {Number} length
      */
-    _checkBounds(length) {
+    _checkBounds( length ) 
+    {
         // Check that this read won't go out-of-bounds anyway.
-        super._checkBounds(length);
+        super._checkBounds( length );
 
         // Ensure all blocks required for this read are available.
         const pos = this.offset + length;
-        while (pos > this.blockWriteIndex) {
-            if (this._processBlock() === false) return;
+        while ( pos > this.blockWriteIndex ) 
+        {
+            if ( this._processBlock() === false ) return;
         }
     }
 

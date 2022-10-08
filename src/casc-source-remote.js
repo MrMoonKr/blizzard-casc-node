@@ -260,7 +260,7 @@ class CASCRemote extends CASC {
         await this.loadServerConfig();
         await this.resolveCDNHost();
         await this.loadConfigs();
-        await this.loadArchives();
+        //await this.loadArchives();
     }
 
     /**
@@ -285,43 +285,49 @@ class CASCRemote extends CASC {
 
     /**
      * Download and parse the encoding file.
+     * ContentKey -> EncodingKey 룩업테이블 파일 로딩.
      */
     async loadEncoding() 
     {
         const encKeys = this.buildConfig.encoding.split(" ");
-        const encKey = encKeys[1];
+        const encKey  = encKeys[1];
 
-        log.timeLog();
+        // log.timeLog();
 
-        await this.progress.step("Loading encoding table");
-        let encRaw = await this.cache.getFile(constants.CACHE.BUILD_ENCODING);
-        if (encRaw === null) {
+        //await this.progress.step("Loading encoding table");
+        let encRaw = await this.cache.getFile( constants.CACHE.BUILD_ENCODING );
+        if ( encRaw === null ) 
+        {
             // Encoding file not cached, download it.
-            log.write(
-                "Encoding for build %s not cached, downloading.",
+            log.write( "Encoding for build %s not cached, downloading.",
                 this.cache.key
             );
-            encRaw = await this.getDataFile(this.formatCDNKey(encKey));
+
+            encRaw = await this.getDataFile( this.formatCDNKey( encKey ) );
 
             // Store back into cache (no need to block).
-            this.cache.storeFile(constants.CACHE.BUILD_ENCODING, encRaw);
-        } else {
-            log.write("Encoding for build %s cached locally.", this.cache.key);
+            this.cache.storeFile( constants.CACHE.BUILD_ENCODING, encRaw );
+        } 
+        else 
+        {
+            log.write( "Encoding for build %s cached locally.", this.cache.key );
         }
 
-        log.timeEnd(
-            "Loaded encoding table (%s)",
-            generics.filesize(encRaw.byteLength)
-        );
+        // log.timeEnd(
+        //     "Loaded encoding table (%s)",
+        //     generics.filesize(encRaw.byteLength)
+        // );
 
         // Parse encoding file.
-        log.timeLog();
-        await this.progress.step("Parsing encoding table");
-        await this.parseEncodingFile(encRaw, encKey);
-        log.timeEnd(
-            "Parsed encoding table (%d entries)",
-            this.encodingKeys.size
-        );
+        // log.timeLog();
+
+        //await this.progress.step("Parsing encoding table");
+        await this.parseEncodingFile( encRaw, encKey );
+
+        // log.timeEnd(
+        //     "Parsed encoding table (%d entries)",
+        //     this.encodingKeys.size
+        // );
     }
 
     /**
@@ -330,39 +336,40 @@ class CASCRemote extends CASC {
     async loadRoot() 
     {
         // Get root key from encoding table.
-        const rootKey = this.encodingKeys.get(this.buildConfig.root);
-        if (rootKey === undefined)
+        const rootKey = this.encodingKeys.get( this.buildConfig.root );
+        if ( rootKey === undefined )
+        {
             throw new Error("No encoding entry found for root key");
+        }
 
-        log.timeLog();
-        await this.progress.step("Loading root table");
+        //log.timeLog();
+        //await this.progress.step("Loading root table");
 
-        let root = await this.cache.getFile(constants.CACHE.BUILD_ROOT);
-        if (root === null) {
+        let root = await this.cache.getFile( constants.CACHE.BUILD_ROOT );
+        if ( root === null ) 
+        {
             // Root file not cached, download.
-            log.write(
-                "Root file for build %s not cached, downloading.",
+            log.write( "Root file for build %s not cached, downloading.",
                 this.cache.key
             );
 
-            root = await this.getDataFile(this.formatCDNKey(rootKey));
-            this.cache.storeFile(constants.CACHE.BUILD_ROOT, root);
+            root = await this.getDataFile( this.formatCDNKey( rootKey ) );
+            this.cache.storeFile( constants.CACHE.BUILD_ROOT, root );
         }
 
-        log.timeEnd(
-            "Loaded root file (%s)",
-            generics.filesize(root.byteLength)
-        );
+        // log.timeEnd( "Loaded root file (%s)",
+        //     generics.filesize( root.byteLength )
+        // );
 
         // Parse root file.
-        log.timeLog();
-        await this.progress.step("Parsing root file");
-        const rootEntryCount = await this.parseRootFile(root, rootKey);
-        log.timeEnd(
-            "Parsed root file (%d entries, %d types)",
-            rootEntryCount,
-            this.rootTypes.length
-        );
+        // log.timeLog();
+        // await this.progress.step("Parsing root file");
+
+        const rootEntryCount = await this.parseRootFile( root, rootKey );
+
+        // log.timeEnd( "Parsed root file (%d entries, %d types)",
+        //     rootEntryCount, this.rootTypes.length
+        // );
     }
 
     /**
@@ -420,6 +427,9 @@ class CASCRemote extends CASC {
         log.write( "%o", serverConfigs );
 
         // Locate the CDN entry for our selected region.
+        /**
+         * @type {CDNS}
+         */
         this.serverConfig = serverConfigs.find( ( e ) => e.Name === this.region );
         if ( !this.serverConfig )
         {
@@ -478,11 +488,12 @@ class CASCRemote extends CASC {
 
     /**
      * Download a data file from the CDN.
-     * @param {string} file
+     * @param {String} file hex name of file
      * @returns {BufferWrapper}
      */
-    async getDataFile(file) {
-        return await generics.downloadFile(this.host + "data/" + file);
+    async getDataFile( file ) 
+    {
+        return await generics.downloadFile( this.host + "data/" + file );
     }
 
     /**

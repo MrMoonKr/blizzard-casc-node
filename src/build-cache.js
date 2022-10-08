@@ -12,15 +12,16 @@ const generics = require("./generics");
 //const core = require('../core');
 const BufferWrapper = require("./buffer");
 
-let cacheIntegrity;
+let cacheIntegrity ;
 
 /**
  * Returns a promise that resolves once cache integrity is available.
  */
-const cacheIntegrityReady = async () => {
+const cacheIntegrityReady = async () => 
+{
     return new Promise( ( res ) => {
         // Cache integrity already available.
-        if (cacheIntegrity) return res();
+        if ( cacheIntegrity ) return res();
 
         // Wait for initialization event to fire.
         log.write("Cache integrity is not ready, waiting!");
@@ -29,36 +30,71 @@ const cacheIntegrityReady = async () => {
 };
 
 class BuildCache {
+
     /**
      * Construct a new BuildCache instance.
-     * @param {string} key
+     * @param {String} key Versions.BuildConfig hex string
      */
-    constructor(key) {
+    constructor( key ) 
+    {
+        /**
+         * @type {String} BuildConfig HexKey
+         */
         this.key = key;
+        /**
+         * @type {Object} Meta Data
+         */
         this.meta = {};
-
-        this.cacheDir = path.join(constants.CACHE.DIR_BUILDS, key);
-        this.manifestPath = path.join(
-            this.cacheDir,
-            constants.CACHE.BUILD_MANIFEST
-        );
+        /**
+         * @type {String} Save Directory ~/cache/user_data/casc/builds/hexkey..
+         */
+        this.cacheDir = path.join( constants.CACHE.DIR_BUILDS, key );
+        /**
+         * @type {String} Save Directory ~/cache/user_data/casc/builds/hexkey../manifest.json
+         */
+        this.manifestPath = path.join( this.cacheDir, constants.CACHE.BUILD_MANIFEST );
     }
 
     /**
      * Initialize the build cache instance.
      */
-    async init() {
+    async init() 
+    {
         // Create cache directory if needed.
-        await fsp.mkdir(this.cacheDir, { recursive: true });
+        await fsp.mkdir( this.cacheDir, { recursive: true } );
+
+        let check = await this.directoryExists( this.cacheDir );
+
+        try 
+        {
+            const integrity = await generics.readJSON( constants.CACHE.INTEGRITY_FILE, false );
+            if ( integrity === null )
+            {
+                throw new Error('File cannot be accessed or contains malformed JSON: ' + constants.CACHE.INTEGRITY_FILE);
+            }
+
+            cacheIntegrity = integrity;
+        } 
+        catch ( e ) 
+        {
+            log.write('Unable to load cache integrity file; entire cache will be invalidated.');
+            log.write( e.message );
+
+            cacheIntegrity = {};
+        }
+
 
         // Load manifest values.
-        try {
+        try 
+        {
             const manifest = JSON.parse(
-                await fsp.readFile(this.manifestPath, "utf8")
+                await fsp.readFile( this.manifestPath, "utf8" )
             );
-            Object.assign(this.meta, manifest);
-        } catch (e) {
-            log.write("No cache manifest found for %s", this.key);
+            Object.assign( this.meta, manifest );
+        } 
+        catch ( e ) 
+        {
+            log.write( "No cache manifest found for %s", this.key );
         }
 
         // Save access update without blocking.
@@ -69,80 +105,91 @@ class BuildCache {
     /**
      * Attempt to get a file from this build cache.
      * Returns NULL if the file is not cached.
-     * @param {string} file File path relative to build cache.
-     * @param {string} dir Optional override directory.
+     * @param {String} file File path relative to build cache.
+     * @param {String} dir Optional override directory.
      */
-    async getFile(file, dir) {
-        try {
-            const filePath = this.getFilePath(file, dir);
+    async getFile( file, dir ) 
+    {
+        try 
+        {
+            const filePath = this.getFilePath( file, dir );
 
             // Cache integrity is not loaded yet, wait for it.
-            if (!cacheIntegrity) await cacheIntegrityReady();
+            // if ( !cacheIntegrity ) await cacheIntegrityReady();
 
-            const integrityHash = cacheIntegrity[filePath];
+            const integrityHash = cacheIntegrity[ filePath ];
 
             // File integrity cannot be verified, reject.
-            if (typeof integrityHash !== "string") {
-                log.write(
-                    "Cannot verify integrity of file, rejecting cache (%s)",
+            if ( typeof integrityHash !== "string" ) 
+            {
+                log.write( "Cannot verify integrity of file, rejecting cache (%s)",
                     filePath
                 );
                 return null;
             }
 
-            const data = await BufferWrapper.readFile(filePath);
-            const dataHash = data.calculateHash("sha1", "hex");
+            const data = await BufferWrapper.readFile( filePath );
+            const dataHash = data.calculateHash( "sha1", "hex" );
 
             // Reject cache if hash does not match.
-            if (dataHash !== integrityHash) {
-                log.write(
-                    "Bad integrity for file %s, rejecting cache (%s != %s)",
-                    filePath,
-                    dataHash,
-                    integrityHash
+            if ( dataHash !== integrityHash ) 
+            {
+                log.write( "Bad integrity for file %s, rejecting cache (%s != %s)",
+                    filePath, dataHash, integrityHash
                 );
                 return null;
             }
 
             return data;
-        } catch (e) {
+        } 
+        catch ( e ) 
+        {
             return null;
         }
     }
 
     /**
      * Get a direct path to a cached file.
-     * @param {string} file File path relative to build cache.
-     * @param {string} dir Optional override directory.
+     * @param {String} file File path relative to build cache.
+     * @param {String} dir Optional override directory.
      */
-    getFilePath(file, dir) {
-        return path.join(dir || this.cacheDir, file);
+    getFilePath( file, dir ) 
+    {
+        return path.join( dir || this.cacheDir, file );
     }
 
     /**
      * Store a file in this build cache.
-     * @param {string} file File path relative to build cache.
+     * @param {String} file File path relative to build cache.
      * @param {BufferWrapper} data Data to store in the file.
-     * @param {string} dir Optional override directory.
+     * @param {String} dir Optional override directory.
      */
-    async storeFile(file, data, dir) {
-        if (!(data instanceof BufferWrapper))
-            throw new Error(
-                "Data provided to cache.storeFile() must be of BufferWrapper type."
+    async storeFile( file, data, dir ) 
+    {
+        if ( !( data instanceof BufferWrapper ) )
+        {
+            throw new Error( "Data provided to cache.storeFile() must be of BufferWrapper type."
             );
+        }
 
-        const filePath = this.getFilePath(file, dir);
-        if (dir) await generics.createDirectory(path.dirname(filePath));
+        const filePath = this.getFilePath( file, dir );
+        if ( dir ) 
+        {
+            await generics.createDirectory( path.dirname( filePath ) );
+        }
 
         // Cache integrity is not loaded yet, wait for it.
-        if (!cacheIntegrity) await cacheIntegrityReady();
+        // if ( !cacheIntegrity )
+        // {
+        //     await cacheIntegrityReady();
+        // }
 
         // Integrity checking.
-        const hash = data.calculateHash("sha1", "hex");
-        cacheIntegrity[filePath] = hash;
+        const hash = data.calculateHash( "sha1", "hex" );
+        cacheIntegrity[ filePath ] = hash;
 
-        await fsp.writeFile(filePath, data.raw);
-        core.view.cacheSize += data.byteLength;
+        await fsp.writeFile( filePath, data.raw );
+        //core.view.cacheSize += data.byteLength;
 
         await this.saveCacheIntegrity();
     }
@@ -150,45 +197,73 @@ class BuildCache {
     /**
      * Save the cache integrity to disk.
      */
-    async saveCacheIntegrity() {
-        await fsp.writeFile(
-            constants.CACHE.INTEGRITY_FILE,
-            JSON.stringify(cacheIntegrity),
-            "utf8"
+    async saveCacheIntegrity() 
+    {
+        await fsp.writeFile( constants.CACHE.INTEGRITY_FILE, 
+            JSON.stringify( cacheIntegrity ), "utf8"
         );
     }
 
     /**
      * Save the manifest for this build cache.
      */
-    async saveManifest() {
-        await fsp.writeFile(
-            this.manifestPath,
-            JSON.stringify(this.meta),
-            "utf8"
-        );
+    async saveManifest() 
+    {
+        await fsp.writeFile( this.manifestPath,
+            JSON.stringify( this.meta ), "utf8" );
+    }
+
+    async fileExists( file )
+    {
+        try 
+        {
+            await fsp.access( file );
+            return true;
+        } 
+        catch ( e ) 
+        {
+            return false;
+        }
+    };
+
+    async directoryExists( dir )
+    {
+        try 
+        {
+            await fsp.access( dir, fsp.constants.F_OK );
+            return true;
+        } 
+        catch ( e ) 
+        {
+            return false;
+        }
     }
 }
 
 // Initialize cache integrity system.
-/*
-(async () => {
-	try {
-		const integrity = await generics.readJSON(constants.CACHE.INTEGRITY_FILE, false);
-		if (integrity === null)
-			throw new Error('File cannot be accessed or contains malformed JSON: ' + constants.CACHE.INTEGRITY_FILE);
 
-		cacheIntegrity = integrity;
-	} catch (e) {
-		log.write('Unable to load cache integrity file; entire cache will be invalidated.');
-		log.write(e.message);
+// ( async () => {
+//     try 
+//     {
+//         const integrity = await generics.readJSON( constants.CACHE.INTEGRITY_FILE, false );
+//         if ( integrity === null )
+//         {
+//             throw new Error('File cannot be accessed or contains malformed JSON: ' + constants.CACHE.INTEGRITY_FILE);
+//         }
 
-		cacheIntegrity = {};
-	}
+//         cacheIntegrity = integrity;
+//     } 
+//     catch ( e ) 
+//     {
+//         log.write('Unable to load cache integrity file; entire cache will be invalidated.');
+//         log.write( e.message );
 
-	//core.events.emit('cache-integrity-ready');
-})();
-*/
+//         cacheIntegrity = {};
+//     }
+
+//     //core.events.emit('cache-integrity-ready');
+// })();
+
 
 // Invoked when the user requests a cache purge.
 /*
