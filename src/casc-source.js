@@ -216,17 +216,12 @@ class CASC {
     async loadListfile( buildKey ) 
     {
         //await this.progress.step("Loading listfile");
-        const entries = await listfile.loadListfile(
-            buildKey,
-            this.cache,
-            this.rootEntries
-        );
+        const entries = await listfile.loadListfile( buildKey, this.cache, this.rootEntries );
 
         if ( entries === 0 )
         {
             throw new Error("No listfile entries found");
         } 
-            
     }
 
     /**
@@ -292,27 +287,32 @@ class CASC {
     /**
      * Load tables that are required globally.
      */
-    async loadTables() {
-        await this.progress.step("Loading model file data");
+    async loadTables() 
+    {
+        //await this.progress.step("Loading model file data");
         await DBModelFileData.initializeModelFileData();
 
-        await this.progress.step("Loading texture file data");
+        //await this.progress.step("Loading texture file data");
         await DBTextureFileData.initializeTextureFileData();
 
         // Once the above two tables have loaded, ingest fileDataIDs as
         // unknown entries to the listfile.
-        if (core.view.config.enableUnknownFiles) {
-            this.progress.step("Checking data tables for unknown files");
+        if (core.view.config.enableUnknownFiles) 
+        {
+            //this.progress.step("Checking data tables for unknown files");
             await listfile.loadUnknowns();
-        } else {
-            await this.progress.step();
+        } 
+        else 
+        {
+            //await this.progress.step();
         }
 
-        if (core.view.config.enableM2Skins) {
-            await this.progress.step("Loading item displays");
+        if (core.view.config.enableM2Skins) 
+        {
+            //await this.progress.step("Loading item displays");
             await DBItemDisplays.initializeItemDisplays();
 
-            await this.progress.step("Loading creature data");
+            //await this.progress.step("Loading creature data");
             const creatureDisplayInfo = new WDCReader(
                 "DBFilesClient/CreatureDisplayInfo.db2"
             );
@@ -327,8 +327,10 @@ class CASC {
                 creatureDisplayInfo,
                 creatureModelData
             );
-        } else {
-            await this.progress.step();
+        } 
+        else 
+        {
+            //await this.progress.step();
         }
     }
 
@@ -464,16 +466,16 @@ class CASC {
 
     /**
      * Parse entries from an encoding file.
-     * @param {BufferWrapper} data Raw Data
-     * @param {String} hash 16byte hex string
+     * @param {BufferWrapper} dataRaw Raw Data
+     * @param {String} hash 16byte hex string, Hash of File Name
      * @returns {Void}
      */
-    async parseEncodingFile( data, hash ) 
+    async parseEncodingFile( dataRaw, hash ) 
     {
         const encodingSizes = this.encodingSizes;
         const encodingKeys  = this.encodingKeys;
 
-        const encoding = new BLTEReader( data, hash );
+        const encoding = new BLTEReader( dataRaw, hash );
 
         const magic = encoding.readUInt16LE();
         if ( magic !== ENC_MAGIC )

@@ -39,29 +39,31 @@ const BIG_ENDIAN = {
 };
 
 /**
+ * 메모리버퍼 읽기 쓰기 랩퍼 클래스
  * This class is a wrapper for the node Buffer class which provides a more streamlined
  * interface for reading/writing data. Only required features have been implemented.
  * @class BufferWrapper
  */
 class BufferWrapper {
+
     /**
      * Alloc a buffer with the given length and return it wrapped.
-     * @param {number} length Initial capacity of the internal buffer.
-     * @param {boolean} secure If true, buffer will be zeroed for security.
+     * @param {Number} length Initial capacity of the internal buffer.
+     * @param {Boolean} secure If true, buffer will be zeroed for security.
      * @returns {BufferWrapper}
      */
-    static alloc(length, secure = false) {
-        return new BufferWrapper(
-            secure ? Buffer.alloc(length) : Buffer.allocUnsafe(length)
-        );
+    static alloc( length, secure = false ) 
+    {
+        return new BufferWrapper( secure ? Buffer.alloc( length ) : Buffer.allocUnsafe( length ) );
     }
 
     /**
      * Create a buffer from a source using Buffer.from().
      * @param {Array} source
      */
-    static from(source) {
-        return new BufferWrapper(Buffer.from(source));
+    static from( source ) 
+    {
+        return new BufferWrapper( Buffer.from( source ) );
     }
 
     /**
@@ -80,10 +82,11 @@ class BufferWrapper {
 
     /**
      * Load a file from disk at the given path into a wrapped buffer.
-     * @param {string} file Path to the file.
+     * @param {String} file 파일경로 Path to the file.
      */
-    static async readFile(file) {
-        return new BufferWrapper(await fsp.readFile(file));
+    static async readFile( file ) 
+    {
+        return new BufferWrapper( await fsp.readFile( file ) );
     }
 
     /**
@@ -890,13 +893,15 @@ class BufferWrapper {
     }
 
     /**
+     * this._buf 를 파일로 저장
      * Write the contents of this buffer to a file.
      * Directory path will be created if needed.
-     * @param {string} file
+     * @param {String} file 파일 경로
      */
-    async writeToFile(file) {
-        await fsp.mkdir(path.dirname(file), { recursive: true });
-        await fsp.writeFile(file, this._buf);
+    async writeToFile( file ) 
+    {
+        await fsp.mkdir( path.dirname( file ), { recursive: true } );
+        await fsp.writeFile( file, this._buf );
     }
 
     /**
@@ -947,8 +952,9 @@ class BufferWrapper {
     }
 
     /**
+     * 원본 파일에 대한 URL 주소 조회
      * Assign a data URL for this buffer.
-     * @returns {string}
+     * @returns {String}
      */
     getDataURL() {
         if (!this.dataURL) {
@@ -982,14 +988,13 @@ class BufferWrapper {
      * @param {number} capacity New capacity of the internal buffer.
      * @param {boolean} secure If true, expanded capacity will be zeroed for security.
      */
-    setCapacity(capacity, secure = false) {
+    setCapacity( capacity, secure = false ) 
+    {
         // Don't waste time replacing the buffer for nothing.
-        if (capacity === this.byteLength) return;
+        if ( capacity === this.byteLength ) return;
 
-        const buf = secure
-            ? Buffer.alloc(capacity)
-            : Buffer.allocUnsafe(capacity);
-        this._buf.copy(buf, 0, 0, Math.min(capacity, this.byteLength));
+        const buf = secure ? Buffer.alloc( capacity ) : Buffer.allocUnsafe( capacity );
+        this._buf.copy( buf, 0, 0, Math.min( capacity, this.byteLength ) );
         this._buf = buf;
     }
 
@@ -1030,18 +1035,20 @@ class BufferWrapper {
     }
 
     /**
+     * 해석하지 않은 부분의 길이가 전달된 값보다 큰지 확인.
+     * 작으면 예외 던짐
      * Check a given length does not exceed current capacity.
-     * @param {number} length
+     * @param {Number} length
      */
-    _checkBounds(length) {
-        if (this.remainingBytes < length)
-            throw new Error(
-                util.format(
-                    "Buffer operation out-of-bounds: %d > %d",
-                    length,
-                    this.remainingBytes
+    _checkBounds( length ) 
+    {
+        if ( this.remainingBytes < length )
+        {
+            throw new Error( util.format( "Buffer operation out-of-bounds: %d > %d",
+                    length, this.remainingBytes
                 )
             );
+        }
     }
 
     /**

@@ -37,6 +37,10 @@ class BLTEIntegrityError extends Error {
     }
 }
 
+/**
+ * 아카이브내에 저장된 에셋.
+ * https://wowdev.wiki/BLTE
+ */
 class BLTEReader extends BufferWrapper {
     /**
      * Check if the given data is a BLTE file.
@@ -54,7 +58,7 @@ class BLTEReader extends BufferWrapper {
 
     /**
      * Construct a new BLTEReader instance.
-     * @param {BufferWrapper} buf
+     * @param {BufferWrapper} buf BLTE 원본 버퍼 raw
      * @param {string} hash
      * @param {boolean} partialDecrypt
      */
@@ -62,13 +66,19 @@ class BLTEReader extends BufferWrapper {
     {
         super(null);
 
+        /**
+         * @type {BufferWrapper} BLTE raw 버퍼
+         */
         this._blte = buf;
         this.blockIndex = 0;
         this.blockWriteIndex = 0;
         this.partialDecrypt = partialDecrypt;
 
         const size = buf.byteLength;
-        if (size < 8) throw new Error("[BLTE] Not enough data (< 8)");
+        if ( size < 8 ) 
+        {
+            throw new Error("[BLTE] Not enough data (< 8)");
+        }
     
         const magic = buf.readUInt32LE();
         if ( magic !== BLTE_MAGIC )
@@ -77,41 +87,44 @@ class BLTEReader extends BufferWrapper {
         }
 
         const headerSize = buf.readInt32BE();
-        const origPos = buf.offset;
+        const origPos    = buf.offset;
 
-        buf.seek(0);
+        buf.seek( 0 );
 
-        let hashCheck =
-            headerSize > 0
-                ? buf.readBuffer(headerSize).calculateHash()
-                : buf.calculateHash();
-        if (hashCheck !== hash)
-            throw new Error(
-                util.format(
-                    "[BLTE] Invalid MD5 hash, expected %s got %s",
-                    hash,
-                    hashCheck
+        let hashCheck = headerSize > 0 ? buf.readBuffer( headerSize ).calculateHash() : buf.calculateHash();
+        if ( hashCheck !== hash )
+        {
+            throw new Error( util.format( "[BLTE] Invalid MD5 hash, expected %s got %s",
+                    hash, hashCheck
                 )
             );
+        }
 
-        buf.seek(origPos);
+        buf.seek( origPos );
         let numBlocks = 1;
 
-        if (headerSize > 0) {
-            if (size < 12) throw new Error("[BLTE] Not enough data (< 12)");
+        if ( headerSize > 0 ) // 여러개의 서브블록으로 나누어 저장됨
+        {
+            if ( size < 12 ) throw new Error("[BLTE] Not enough data (< 12)");
 
-            const fc = buf.readUInt8(4);
-            numBlocks = (fc[1] << 16) | (fc[2] << 8) | (fc[3] << 0);
+            const fc = buf.readUInt8( 4 );
+            numBlocks = ( fc[1] << 16 ) | ( fc[2] << 8 ) | ( fc[3] << 0 );
 
-            if (fc[0] !== 0x0f || numBlocks === 0)
+            if ( fc[0] !== 0x0f || numBlocks === 0 )
+            {
                 throw new Error("[BLTE] Invalid table format.");
+            }
 
             const frameHeaderSize = 24 * numBlocks + 12;
-            if (headerSize !== frameHeaderSize)
+            if ( headerSize !== frameHeaderSize )
+            {
                 throw new Error("[BLTE] Invalid header size.");
+            }
 
-            if (size < frameHeaderSize)
+            if ( size < frameHeaderSize )
+            {
                 throw new Error("[BLTE] Not enough data (frameHeader).");
+            }
         }
 
         /**
@@ -128,15 +141,15 @@ class BLTEReader extends BufferWrapper {
             const block = {};
             if ( headerSize !== 0 ) 
             {
-                block.CompSize = buf.readInt32BE();
-                block.DecompSize = buf.readInt32BE();
-                block.Hash = buf.readHexString(16);
+                block.CompSize      = buf.readInt32BE();
+                block.DecompSize    = buf.readInt32BE();
+                block.Hash          = buf.readHexString(16);
             } 
             else 
             {
-                block.CompSize = size - 8;
-                block.DecompSize = size - 9;
-                block.Hash = EMPTY_HASH;
+                block.CompSize      = size - 8;
+                block.DecompSize    = size - 9;
+                block.Hash          = EMPTY_HASH;
             }
 
             allocSize += block.DecompSize;
@@ -144,61 +157,71 @@ class BLTEReader extends BufferWrapper {
         }
 
         /**
-         * @type {Buffer}
+         * @type {Buffer} 압축해제된 원본 데이터 조합용 버퍼
          */
         this._buf = Buffer.alloc( allocSize );
     }
 
     /**
+     * this._blte -> this._buf 압축해제
      * Process all BLTE blocks in the reader.
      */
-    processAllBlocks() {
-        while (this.blockIndex < this.blocks.length) this._processBlock();
+    processAllBlocks() 
+    {
+        while ( this.blockIndex < this.blocks.length ) 
+        {
+            this._processBlock();
+        }
     }
 
     /**
+     * 인코딩된 블록 하나 디코딩
      * Process the next BLTE block.
      */
     _processBlock() 
     {
         // No more blocks to process.
-        if ( this.blockIndex === this.blocks.length ) return false;
+        if ( this.blockIndex === this.blocks.length ) {
+            return false;
+        }
 
         const oldPos = this.offset;
         this.seek( this.blockWriteIndex );
 
-        const block = this.blocks[this.blockIndex];
+        const block   = this.blocks[ this.blockIndex ];
         const bltePos = this._blte.offset;
 
-        if (block.Hash !== EMPTY_HASH) {
-            const blockData = this._blte.readBuffer(block.CompSize);
+        if ( block.Hash !== EMPTY_HASH ) // 버퍼해시 체크
+        {
+            /**
+             * @type {BufferWrapper}
+             */
+            const blockData = this._blte.readBuffer( block.CompSize );
             const blockHash = blockData.calculateHash();
 
             // Reset after reading the hash.
-            this._blte.seek(bltePos);
+            this._blte.seek( bltePos );
 
-            if (blockHash !== block.Hash)
-                throw new BLTEIntegrityError(block.Hash, blockHash);
+            if ( blockHash !== block.Hash )
+            {
+                throw new BLTEIntegrityError( block.Hash, blockHash );
+            }
         }
 
-        this._handleBlock(
-            this._blte,
-            bltePos + block.CompSize,
-            this.blockIndex
-        );
-        this._blte.seek(bltePos + block.CompSize);
+        this._handleBlock( this._blte, bltePos + block.CompSize, this.blockIndex );
+        this._blte.seek( bltePos + block.CompSize );
 
         this.blockIndex++;
         this.blockWriteIndex = this.offset;
 
-        this.seek(oldPos);
+        this.seek( oldPos );
     }
 
     /**
      * Handle a BLTE block.
-     * @param {BufferWrapper} block
+     * @param {BufferWrapper} block 원본버퍼내의 인코딩된 블록
      * @param {Number} blockEnd
-     * @param {Number} index
+     * @param {Number} index 현재 처리 중인 블록 번호 ( 배열의 인덱스 )
      */
     _handleBlock( block, blockEnd, index ) 
     {
@@ -206,39 +229,48 @@ class BLTEReader extends BufferWrapper {
         switch ( flag ) 
         {
             case 0x45: // Encrypted
-                try 
                 {
-                    const decrypted = this._decryptBlock(
-                        block, blockEnd, index
-                    );
-                    this._handleBlock( decrypted, decrypted.byteLength, index );
-                } 
-                catch ( e ) 
-                {
-                    if ( e instanceof EncryptionError ) 
+                    try 
                     {
-                        // Partial decryption allows us to leave zeroed data.
-                        if (this.partialDecrypt)
-                            this._ofs += this.blocks[index].DecompSize;
-                        else throw e;
+                        const decrypted = this._decryptBlock( block, blockEnd, index );
+                        this._handleBlock( decrypted, decrypted.byteLength, index );
+                    } 
+                    catch ( e ) 
+                    {
+                        if ( e instanceof EncryptionError ) 
+                        {
+                            // Partial decryption allows us to leave zeroed data.
+                            if ( this.partialDecrypt )
+                            {
+                                this._ofs += this.blocks[index].DecompSize;
+                            }
+                            else
+                            {
+                                throw e;
+                            }
+                        }
                     }
                 }
-
                 break;
-
             case 0x46: // Frame (Recursive)
-                throw new Error("[BLTE] No frame decoder implemented!");
-
+                {
+                    throw new Error("[BLTE] No frame decoder implemented!");
+                }
+                break;
             case 0x4e: // Frame ( Normal )
-                this._writeBufferBLTE( block, blockEnd );
+                {
+                    this._writeBufferBLTE( block, blockEnd );
+                }
                 break;
-
             case 0x5a: // Compressed
-                this._decompressBlock( block, blockEnd, index );
+                {
+                    this._decompressBlock( block, blockEnd, index );
+                }
                 break;
-
             default:
-                throw new Error("Unknown block: " + flag);
+                {
+                    throw new Error( "Unknown block encryption flag : " + flag );
+                }
         }
     }
 
@@ -248,17 +280,19 @@ class BLTEReader extends BufferWrapper {
      * @param {Number} blockEnd
      * @param {Number} index
      */
-    _decompressBlock(data, blockEnd, index) {
-        const decomp = data.readBuffer(blockEnd - data.offset, true, true);
+    _decompressBlock( data, blockEnd, index ) 
+    {
+        const decomp       = data.readBuffer( blockEnd - data.offset, true, true );
         const expectedSize = this.blocks[index].DecompSize;
 
         // Reallocate buffer to compensate.
-        if (decomp.byteLength > expectedSize)
-            this.setCapacity(
-                this.byteLength + (decomp.byteLength - expectedSize)
+        if ( decomp.byteLength > expectedSize )
+        {
+            this.setCapacity( this.byteLength + ( decomp.byteLength - expectedSize )
             );
+        }
 
-        this._writeBufferBLTE(decomp, decomp.byteLength);
+        this._writeBufferBLTE( decomp, decomp.byteLength );
     }
 
     /**
@@ -309,10 +343,11 @@ class BLTEReader extends BufferWrapper {
     }
 
     /**
+     * 압축해제된 버퍼를 조합용 버퍼에 쓰기
      * Write the contents of a buffer to this instance.
      * Skips bound checking for BLTE internal writing.
-     * @param {BufferWrapper} buf
-     * @param {Number} blockEnd
+     * @param {BufferWrapper} buf 압축 해제된 버퍼
+     * @param {Number} blockEnd 버퍼의 크기와 동일
      */
     _writeBufferBLTE( buf, blockEnd ) 
     {
@@ -321,6 +356,7 @@ class BLTEReader extends BufferWrapper {
     }
 
     /**
+     * 해석되지 않은 부분의 길이를 디코딩으로 채운다
      * Check a given length does not exceed current capacity.
      * @param {Number} length
      */
@@ -338,13 +374,15 @@ class BLTEReader extends BufferWrapper {
     }
 
     /**
+     * this._blte -> this._buf 로 디코딩 후 파일로 저장
      * Write the contents of this buffer to a file.
      * Directory path will be created if needed.
-     * @param {string} file
+     * @param {String} file 파일 경로
      */
-    async writeToFile(file) {
+    async writeToFile( file ) 
+    {
         this.processAllBlocks();
-        await super.writeToFile(file);
+        await super.writeToFile( file );
     }
 
     /**

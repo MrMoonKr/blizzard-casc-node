@@ -300,7 +300,7 @@ class CASCRemote extends CASC {
 
         //await this.progress.step("Loading encoding table");
         let encRaw = await this.cache.getFile( constants.CACHE.BUILD_ENCODING );
-        if ( encRaw === null ) 
+        if ( encRaw === null ) // 캐싱된 파일 없음
         {
             // Encoding file not cached, download it.
             log.write( "Encoding for build %s not cached, downloading.",
@@ -494,6 +494,7 @@ class CASCRemote extends CASC {
     }
 
     /**
+     * 웹에서 다운로드
      * Download a data file from the CDN.
      * @param {String} file hex name of file
      * @returns {BufferWrapper}
