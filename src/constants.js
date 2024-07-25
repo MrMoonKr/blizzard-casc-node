@@ -115,7 +115,8 @@ module.exports = {
     },
 
     /**
-     * LOCAL
+     * LOCAL.
+     * MANIFEST : '.build.info' , DATA_DIR : 'Data'
      */
     BUILD: {
         MANIFEST: ".build.info",                        // File that contains version information in local installs.

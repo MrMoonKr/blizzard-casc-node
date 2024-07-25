@@ -54,6 +54,9 @@ GET http://kr.patch.battle.net:1119/w3/versions
 ###
 GET http://kr.patch.battle.net:1119/d3/versions
 
+### Diablo 4
+GET http://kr.patch.battle.net:1119/fenris/versions
+
 
 ###
 # [CDNS]
@@ -66,8 +69,11 @@ GET http://kr.patch.battle.net:1119/wow/cdns
 ###
 GET http://kr.patch.battle.net:1119/w3/cdns
 
-###
+### Diablo 3
 GET http://kr.patch.battle.net:1119/d3/cdns
+
+### Diablo 4
+GET http://kr.patch.battle.net:1119/fenris/cdns
 
 ###
 GET http://kr.patch.battle.net:1119/catalogs/versions
